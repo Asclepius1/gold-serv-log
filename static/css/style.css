@@ -1,0 +1,39 @@
+html, body {
+    height: 100%; /* Заставляет body занимать всю высоту экрана */
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+/* Убираем маргинты у body */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* Логотип */
+.logo {
+    font-size: 1.5rem;
+}
+
+/* Ссылка в навигации */
+.nav-link:hover {
+    color: #0d6efd; /* Синий от Bootstrap */
+    text-decoration: underline;
+}
+
+/* Основной блок (Hero Section) */
+main {
+    /* background-color: #313233; */
+    background-color: #f8f9fa;
+    flex: 1; /* Заставляет main растягиваться, чтобы заполнить оставшееся пространство */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Центрирует содержимое по вертикали */
+}
+
+/* Footer */
+footer {
+    font-size: 0.9rem;
+    background-color: #343a40; /* Темно-серый от Bootstrap */
+}

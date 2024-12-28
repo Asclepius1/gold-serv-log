@@ -1,0 +1,36 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from sqlalchemy import DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
+
+metadata = MetaData()
+
+owner = Table(
+    "owners",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("name", String, unique=True, index=True),
+)
+
+user = Table(
+    "user",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String),
+    Column("owners_id", Integer, ForeignKey(owner.c.id), nullable=True),
+    Column("email", String),
+    Column("hashed_password", String),
+    Column("is_active", Boolean),
+    Column("is_superuser", Boolean),
+    Column("is_verified", Boolean),
+    )
+
+logs = Table(
+    "logs",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("datetime", DateTime),
+    Column("owner_name", String, index=True),
+    Column("file_name", String),
+    Column("message", String),
+    Column("color", String, default='', nullable=True),
+)

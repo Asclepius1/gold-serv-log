@@ -6,7 +6,7 @@ document.getElementById('login-form').addEventListener('submit', async function 
     // const rememberMe = document.getElementById('remember').checked;
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/auth/jwt/login', {
+        const response = await fetch('/auth/jwt/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

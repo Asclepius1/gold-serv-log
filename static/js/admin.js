@@ -315,7 +315,7 @@ async function addNewUser(){
     const owner = document.getElementById('dropdownAddOwner').getAttribute("owner-id");
     if (name && email && password){
         try {
-            const response = await fetch('http://127.0.0.1:8000/auth/register', {
+            const response = await fetch('/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -349,7 +349,7 @@ async function addNewOwner(){
     const name = document.getElementById('ownerNewName').value;
     if (name){
         try {
-            const response = await fetch('http://127.0.0.1:8000/owners', {
+            const response = await fetch('/owners', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -39,7 +39,7 @@ templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173', 'https://localhost:5173', 'https://127.0.0.1:5173'],
+    allow_origins=['http://localhost:8000', 'http://127.0.0.1:8000', 'http://194.32.140.25:8000', 'http://194.32.140.25'],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,3 +68,4 @@ app.include_router(
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="194.32.140.25", reload=True)
+    # uvicorn.run("main:app", host="localhost", reload=True)

@@ -3,6 +3,7 @@ from fastapi import Depends, FastAPI, Query, Response, status, Request, HTTPExce
 from sqlalchemy import select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -39,7 +40,11 @@ templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['http://localhost:8000', 'http://127.0.0.1:8000', 'http://194.32.140.25:8000', 'http://194.32.140.25'],
+    allow_origins=['http://localhost:8000', 
+                   'http://127.0.0.1:8000', 
+                   'http://194.32.140.25:8000', 
+                   'http://194.32.140.25',
+                   'https://194.32.140.25'],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -16,7 +16,8 @@ document.getElementById('login-form').addEventListener('submit', async function 
             body: new URLSearchParams({
                 username: username,  // использует 'username' вместо 'email' в запросе
                 password: password
-            })
+            }),
+            credentials: 'include'
         });
 
         if (response.ok) {

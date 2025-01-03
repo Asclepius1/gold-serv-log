@@ -12,5 +12,5 @@ DB_NAME = os.environ.get("DB_NAME")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-BEARER_TOKEN_GOLD_SERV = os.getenv("Bearer_TOKEN_GOLD_SERV")
+BEARER_TOKEN_GOLD_SERV = os.getenv("BEARER_TOKEN_GOLD_SERV")
 GOLD_SERV_API_URL = os.getenv("GOLD_SERV_API_URL")

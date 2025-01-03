@@ -74,7 +74,6 @@ async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_ses
     print(respone.status_code)
     if respone.status_code <= 200:
         data: list[dict] = respone.json()
-        print(data)
         async with session.begin():
             for log in data:
                 try:
@@ -91,6 +90,6 @@ async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_ses
                 )
                 await session.execute(query)
 
-        return {"message": "Logs successfully added"}
+        return {"message": f"Logs successfully added"}
     else:
         print(respone.status_code, respone.text)

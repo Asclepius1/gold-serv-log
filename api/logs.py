@@ -70,7 +70,7 @@ async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_ses
     
     url = f'{GOLD_SERV_API_URL}/?date={datetime_}'
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    respone = requests.get(url, headers=headers)
+    respone = requests.get(url, headers=headers, verify=False)
     print(respone.status_code)
     if respone.status_code <= 200:
         data: list[dict] = respone.json()

@@ -70,23 +70,26 @@ async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_ses
     
     url = f'{GOLD_SERV_API_URL}/?date={datetime_}'
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    respone = requests.get(url, headers=headers, verify=False)
+    respone = requests.get(url, headers=headers)
     print(respone.status_code)
-    data: list[dict] = respone.json()
-    async with session.begin():
-        for log in data:
-            try:
-                log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
-            except ValueError:
-                return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
+    if respone.status_code <= 200:
+        data: list[dict] = respone.json()
+        async with session.begin():
+            for log in data:
+                try:
+                    log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
+                except ValueError:
+                    return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
 
-            query = logs.insert().values(
-                datetime=log_datetime,
-                owner_name=log.get("DepCode"),
-                file_name=log.get("FileName"),
-                message=log.get("Message"),
-                # color=log.get("color", ""),
-            )
-            await session.execute(query)
+                query = logs.insert().values(
+                    datetime=log_datetime,
+                    owner_name=log.get("DepCode"),
+                    file_name=log.get("FileName"),
+                    message=log.get("Message"),
+                    # color=log.get("color", ""),
+                )
+                await session.execute(query)
 
-    return {"message": "Logs successfully added"}
+        return {"message": "Logs successfully added"}
+    else:
+        print(respone.status_code, respone.text)

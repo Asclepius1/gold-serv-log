@@ -1,0 +1,64 @@
+.tab-content {
+    padding: 20px;
+}
+.table th, .table td {
+    text-align: center;
+    vertical-align: middle;
+}
+  
+#logsTable tr:hover {
+background-color: #f5f5f5;
+}
+
+#filter-date-from, #filter-date-to {
+width: 100px;
+margin-top: 5px;
+}
+
+.btn-outline-secondary {
+padding: 5px 10px;
+font-size: 14px;
+cursor: pointer;
+}
+
+.d-flex {
+display: flex;
+align-items: center;
+}
+
+.d-flex input {
+    flex: 1;    
+}
+  
+#fullMessageContent {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.ddm {
+    min-width: 200px;
+}
+
+.dditc {
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+.dditc:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.dditc .color-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+.dditc .ms-2 {
+    font-weight: 500;
+}
+
+.dddd {
+    margin: 5px 0;
+}

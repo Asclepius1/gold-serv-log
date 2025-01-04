@@ -86,39 +86,108 @@ async function loadOwners() {
     }
 }
 
-async function loadLogs(page = 1) {
-    const pageSize = 50; // Количество записей на странице
-    try {
-        const response = await fetch(`/logs?page=${page}&page_size=${pageSize}`, {
-            method: 'GET',
-            credentials: 'include',
-        });
-        const data = await response.json();
 
-        // Очистка таблицы перед добавлением новых данных
+document.addEventListener("DOMContentLoaded", function () {
+    // Прослушиваем изменения в полях фильтров
+    document.getElementById("filter-id").addEventListener("input", () => loadLogs());
+    document.getElementById("filter-owner").addEventListener("input", () => loadLogs());
+    document.getElementById("filter-message").addEventListener("input", () => loadLogs());
+
+    // Добавить сюда другие события для других фильтров, если нужно
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const dateRangeButton = document.getElementById("date-range-selector");
+
+    dateRangeButton.addEventListener("click", function () {
+        const startDate = document.getElementById("start-date").value;
+        const endDate = document.getElementById("end-date").value;
+
+        if (startDate && endDate) {
+            selectedDateRange = { from: startDate, to: endDate };
+            loadLogs(); // Перезагружаем данные с новыми фильтрами
+        } else {
+            alert("Пожалуйста, выберите оба диапазона дат.");
+        }
+    });
+});
+let currentSort = { column: "datetime", order: "desc" };
+let selectedDateRange = null;
+async function loadLogs(page = 1) {
+    const pageSize = 50;
+
+    const filters = {
+        id: document.getElementById("filter-id").value.trim(),
+        owner: document.getElementById("filter-owner").value.trim(),
+        message: document.getElementById("filter-message").value.trim(),
+        dateFrom: selectedDateRange?.from || null,
+        dateTo: selectedDateRange?.to || null,
+    };
+
+    const sortColumn = currentSort.column || "datetime";
+    const sortOrder = currentSort.order || "desc";
+
+    // Формируем URL с параметрами
+    const params = new URLSearchParams({
+        page,
+        page_size: pageSize,
+        sort_by: sortColumn,
+        sort_order: sortOrder
+    });
+
+    if (filters.id) params.append("log_id", filters.id);
+    if (filters.owner) params.append("owner_name", filters.owner);
+    if (filters.message) params.append("message", filters.message);
+    if (filters.dateFrom) params.append("start_date", filters.dateFrom);
+    if (filters.dateTo) params.append("end_date", filters.dateTo);
+
+    try {
+        const response = await fetch(`/logs?${params.toString()}`, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        const data = await response.json();
         const tableBody = document.getElementById("logsTable");
         tableBody.innerHTML = "";
 
-        // Заполнение таблицы данными
         data.data.forEach(log => {
             const row = document.createElement("tr");
+
             row.innerHTML = `
                 <td>${log.id}</td>
                 <td>${log.owner_name}</td>
                 <td>${log.datetime}</td>
-                <td>${log.message}</td>
+                <td>
+                    <button class="btn btn-link" data-bs-toggle="modal" data-bs-target="#messageModal" data-message="${log.message}">Раскрыть сообщение</button>
+                </td>
                 <td>ошибка</td>
-                <td>red</td>
+                <td>красный</td>
             `;
             tableBody.appendChild(row);
         });
+        const messageButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
+        messageButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const fullMessage = button.getAttribute('data-message');
+                document.getElementById('fullMessageContent').textContent = fullMessage;
+            });
+        });
 
-        // // Добавьте обработку пагинации, если нужно
-        // setupPagination(data.page, data.page_size, data.total);
     } catch (error) {
         console.error("Ошибка загрузки логов:", error);
     }
 }
+
+function toggleSort(column) {
+    if (currentSort.column === column) {
+        currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
+    } else {
+        currentSort.column = column;
+        currentSort.order = "asc";
+    }
+    loadLogs();
+};
 
 // Редактирование пользователя
 async function editUser(userId) {

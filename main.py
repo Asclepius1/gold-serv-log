@@ -1,3 +1,5 @@
+from config import HOST
+
 from typing import Any, Dict, List
 from fastapi import Depends, FastAPI, Query, Response, status, Request, HTTPException
 from sqlalchemy import select
@@ -72,5 +74,4 @@ app.include_router(
 
 if __name__ == "__main__":
     import uvicorn
-    # uvicorn.run("main:app", host="194.32.140.25", reload=True)
-    uvicorn.run("main:app", host="localhost", reload=True)
+    uvicorn.run("main:app", host=HOST, reload=True)

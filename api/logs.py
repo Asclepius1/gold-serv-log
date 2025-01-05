@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 from datetime import datetime
 
@@ -82,22 +83,50 @@ async def get_logs(
     }
 
 
-@router.post("")
-async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_session)):
+def get_current_data(data: list[dict], last_log: dict) -> list[dict]:
+    correct_data_to_import = []
+    for log in data:
+        log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
+        if log_datetime >= last_log.get("datetime") and last_log.get('file_name') != log.get("FileName"):
+            correct_data_to_import.append(log)
+    return correct_data_to_import
+
     
-    url = f'{GOLD_SERV_API_URL}/?date={datetime_}'
+def run_add_logs():
+    asyncio.run(_add_logs_wrapper())
+
+async def _add_logs_wrapper():
+    async for session in get_async_session():
+        await add_logs(session=session)
+
+
+@router.post("")
+async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(get_async_session)):
+    
+    latest_current_log = logs.select().order_by(logs.c['datetime'].desc()).limit(1)
+    result = await session.execute(latest_current_log)
+    latest_current_log = result.fetchone()
+    print(latest_current_log)
+    url = f'{GOLD_SERV_API_URL}'
+    if datetime_:
+        url+=f'/?date={datetime_}'
+    else:
+        url+=f"/?date={datetime.now().strftime("%d%m%Y")}"
+
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
     respone = requests.get(url, headers=headers, verify=False)
     print(respone.status_code)
-    if respone.status_code <= 200:
+    
+    if respone.status_code == 200:
         data: list[dict] = respone.json()
-        async with session.begin():
-            for log in data:
+        correct_data = get_current_data(data, {'datetime': latest_current_log.datetime, 'file_name': latest_current_log.file_name})
+        if correct_data:
+            for log in correct_data:
                 try:
                     log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
                 except ValueError:
                     return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
-
+                
                 query = logs.insert().values(
                     datetime=log_datetime,
                     owner_name=log.get("DepCode"),
@@ -106,7 +135,11 @@ async def add_logs(datetime_: str, session: AsyncSession = Depends(get_async_ses
                     # color=log.get("color", ""),
                 )
                 await session.execute(query)
-
-        return {"message": f"Logs successfully added"}
+            await session.commit()
+            return {"message": f"Логи импортированы корректно"}
+        return {"message": f'Нет данных для имопрта'}
     else:
         print(respone.status_code, respone.text)
+
+if __name__ == "__main__":
+    pass

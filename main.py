@@ -1,26 +1,47 @@
-from config import HOST
+import pytz
 
-from typing import Any, Dict, List
-from fastapi import Depends, FastAPI, Query, Response, status, Request, HTTPException
+from datetime import datetime
+from config import HOST
+from api import api_router
+from api.logs import run_add_logs
+
 from sqlalchemy import select
+
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from fastapi import Depends, FastAPI, Query, Response, status, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import PlainTextResponse
-from api import api_router
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from auth.auth import auth_backend, fastapi_users, current_user
-from auth.db import User, get_user_db
 from auth.schemas import UserCreate, UserRead, UserUpdate
-from auth.manager import get_user_manager
 
-from fastapi_users.manager import BaseUserManager
-from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
 
-from models.db import get_async_session
+timezone_almaty = pytz.timezone('Asia/Almaty')
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = BackgroundScheduler()
+
+    scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
+    scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
+    scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
+
+    scheduler.start()
+    print("Планировщик запущен")
+    
+    yield  # Даем FastAPI стартовать
+
+    scheduler.shutdown()
+    print("Планировщик остановлен")
+
+# app = FastAPI(lifespan=lifespan)
 app = FastAPI()
 
 @app.exception_handler(StarletteHTTPException)
@@ -75,3 +96,4 @@ app.include_router(
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host=HOST, reload=True)
+    

@@ -41,8 +41,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
     print("Планировщик остановлен")
 
-# app = FastAPI(lifespan=lifespan)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.exception_handler(StarletteHTTPException)
 async def unauthorized_exception_handler(request: Request, exc: HTTPException):

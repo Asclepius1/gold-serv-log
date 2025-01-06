@@ -1,6 +1,6 @@
 import asyncio
 from typing import List
-from datetime import datetime
+from datetime import datetime, time
 
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
@@ -29,6 +29,8 @@ async def get_logs(
     end_date: str = Query(None),
     message: str = Query(None),  # Фильтр по сообщению
     log_id: int = Query(None),  # Фильтр по ID
+    error_type: str = Query(None),
+    color: str = Query(None),
     sort_by: str = Query("datetime"),  # Поле сортировки
     sort_order: str = Query("desc"),  # Направление сортировки ("asc" или "desc")
     session: AsyncSession = Depends(get_async_session),
@@ -36,6 +38,10 @@ async def get_logs(
 ):
     query = logs.select()
 
+    if color:
+        query = query.where(logs.c.color == color)
+    if error_type:
+        query = query.where(logs.c.error_type.ilike(f"%{error_type}%"))
     if owner_name:
         query = query.where(logs.c.owner_name.ilike(f"%{owner_name}%"))
     if file_name:
@@ -47,9 +53,9 @@ async def get_logs(
         query = query.filter(logs.c.id.cast(Text).like(str(log_id) + '%'))
     if start_date and end_date:
         try:
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
-            query = query.where(logs.c.datetime.between(start_date_obj, end_date_obj))
+            start_date_obj = datetime.combine(datetime.strptime(start_date, "%Y-%m-%d"), time(0, 0))
+            end_date_obj = datetime.combine(datetime.strptime(end_date, "%Y-%m-%d"), time(23, 59, 59))
+            query = query.where(logs.c.datetime >= start_date_obj, logs.c.datetime <= end_date_obj)
         except ValueError:
             return {"error": "Invalid date format. Use YYYY-MM-DD."}
 
@@ -74,6 +80,7 @@ async def get_logs(
                 "owner_name": log.owner_name,
                 "file_name": log.file_name,
                 "message": log.message,
+                "error_type": log.error_type,
                 "color": log.color,
             }
             for log in log_entries
@@ -100,6 +107,18 @@ async def _add_logs_wrapper():
     async for session in get_async_session():
         await add_logs(session=session)
 
+
+def check_error(message: str):
+    error_mapping = {
+        "Fields not replaced": ("yellow", "Fields not replaced"),
+        "Код 53236_101 уже присутствует": ("red", "Код уже присутствует"),
+    }
+
+    for substring, (color, error_type) in error_mapping.items():
+        if substring in message:
+            return color, error_type
+
+    return "green", "-"
 
 @router.post("")
 async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(get_async_session)):
@@ -128,19 +147,19 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
                 except ValueError:
                     return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
                 
+                color, error_type = check_error(log.get("Message"))
+
                 query = logs.insert().values(
                     datetime=log_datetime,
                     owner_name=log.get("DepCode"),
                     file_name=log.get("FileName"),
                     message=log.get("Message"),
-                    # color=log.get("color", ""),
+                    error_type=error_type,
+                    color=color,
                 )
                 await session.execute(query)
             await session.commit()
-            return {"message": f"Логи импортированы корректно"}
+            return {"message": f"Логи импортированы корректно, кол-во строк: {len(correct_data)}"}
         return {"message": f'Нет данных для имопрта'}
     else:
         print(respone.status_code, respone.text)
-
-if __name__ == "__main__":
-    pass

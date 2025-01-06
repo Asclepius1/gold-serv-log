@@ -102,12 +102,14 @@ app.include_router(
     tags=["users"],
 )
 
-async def main():
-    import uvicorn
-    config = uvicorn.Config("main:app", host=HOST, reload=True, log_level="info")
-    server = uvicorn.Server(config)
-    await server.serve()
+# async def main():
+#     import uvicorn
+#     config = uvicorn.Config("main:app", host=HOST, reload=True, log_level="info")
+#     server = uvicorn.Server(config)
+#     await server.serve()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import uvicorn
+    uvicorn.run("main:app", host=HOST, reload=True, log_level="info")
+    # asyncio.run(main())

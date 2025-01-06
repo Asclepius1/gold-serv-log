@@ -32,5 +32,6 @@ logs = Table(
     Column("owner_name", String, index=True),
     Column("file_name", String),
     Column("message", String),
-    Column("color", String, default='', nullable=True),
+    Column("error_type", String, default='-', nullable=True),
+    Column("color", String, default='green', nullable=True),
 )

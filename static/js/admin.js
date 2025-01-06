@@ -153,7 +153,10 @@ async function loadLogs(page = 1) {
 
         data.data.forEach(log => {
             const row = document.createElement("tr");
-
+            // row.classList.add("table-danger")
+            // row.classList.add("table-warning")
+            row.classList.add("table-success")
+            
             row.innerHTML = `
                 <td>${log.id}</td>
                 <td>${log.owner_name}</td>

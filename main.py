@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import PlainTextResponse
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from auth.auth import auth_backend, fastapi_users, current_user
 from auth.schemas import UserCreate, UserRead, UserUpdate
@@ -27,7 +28,8 @@ timezone_almaty = pytz.timezone('Asia/Almaty')
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler()
+    # scheduler = BackgroundScheduler()
+    scheduler = AsyncIOScheduler()
 
     scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
     scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)

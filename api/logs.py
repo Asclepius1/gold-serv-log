@@ -92,8 +92,9 @@ def get_current_data(data: list[dict], last_log: dict) -> list[dict]:
     return correct_data_to_import
 
     
-def run_add_logs():
-    asyncio.run(_add_logs_wrapper())
+async def run_add_logs():
+    # asyncio.run(_add_logs_wrapper())
+    await _add_logs_wrapper()
 
 async def _add_logs_wrapper():
     async for session in get_async_session():

@@ -1,3 +1,4 @@
+import asyncio
 import pytz
 
 from datetime import datetime
@@ -26,14 +27,21 @@ from contextlib import asynccontextmanager
 
 timezone_almaty = pytz.timezone('Asia/Almaty')
 
+import sys
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # scheduler = BackgroundScheduler()
     scheduler = AsyncIOScheduler()
 
-    scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
-    scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
-    scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
+    # scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
+    # scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
+    # scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
+    scheduler.add_job(run_add_logs, 'date', run_date=datetime.now())
 
     scheduler.start()
     print("Планировщик запущен")
@@ -94,7 +102,12 @@ app.include_router(
     tags=["users"],
 )
 
-if __name__ == "__main__":
+async def main():
     import uvicorn
-    uvicorn.run("main:app", host=HOST, reload=True)
-    
+    config = uvicorn.Config("main:app", host=HOST, reload=True, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

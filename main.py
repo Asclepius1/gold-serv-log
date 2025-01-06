@@ -38,10 +38,10 @@ async def lifespan(app: FastAPI):
     # scheduler = BackgroundScheduler()
     scheduler = AsyncIOScheduler()
 
-    # scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
-    # scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
-    # scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
-    scheduler.add_job(run_add_logs, 'date', run_date=datetime.now())
+    scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
+    scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
+    scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
+    # scheduler.add_job(run_add_logs, 'date', run_date=datetime.now())
 
     scheduler.start()
     print("Планировщик запущен")

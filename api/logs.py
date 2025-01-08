@@ -10,10 +10,10 @@ from auth.db import User
 from auth.schemas import UserCreate, UserRead
 
 from sqlalchemy.future import select
-from sqlalchemy import Text, cast
+from sqlalchemy import Text, cast, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.models import logs
+from models.models import logs, log_filters
 from models.db import get_async_session
 from auth.auth import superuser_required
 
@@ -43,7 +43,11 @@ async def get_logs(
     if error_type:
         query = query.where(logs.c.error_type.ilike(f"%{error_type}%"))
     if owner_name:
-        query = query.where(logs.c.owner_name.ilike(f"%{owner_name}%"))
+        # query = query.where(logs.c.owner_name.ilike(f"%{owner_name}%"))
+        owner_names = [name.strip() for name in owner_name.split(",")]
+        if not owner_names[-1]:
+            owner_names.pop(-1)
+        query = query.where(or_(*[logs.c.owner_name.ilike(f"%{name}%") for name in owner_names]))
     if file_name:
         query = query.where(logs.c.file_name.ilike(f"%{file_name}%"))
     if message:
@@ -163,3 +167,39 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
         return {"message": f'Нет данных для имопрта'}
     else:
         print(respone.status_code, respone.text)
+
+
+
+@router.post("/filters")
+async def save_filters(
+    filters: dict, 
+    user: User = Depends(superuser_required),
+    session: AsyncSession = Depends(get_async_session)
+):
+    query = select(log_filters).where(log_filters.c.user_id == user.id)
+    result = await session.execute(query)
+    existing_filter = result.first()
+
+    if existing_filter:
+        await session.execute(
+            log_filters.update()
+            .where(log_filters.c.user_id == user.id)
+            .values(filters=filters)
+        )
+    else:
+        await session.execute(
+            log_filters.insert().values(user_id=user.id, filters=filters)
+        )
+
+    await session.commit()
+    return {"message": "Filters saved"}
+
+@router.get("/filters")
+async def get_filters(
+    user: User = Depends(superuser_required),
+    session: AsyncSession = Depends(get_async_session)
+):
+    query = select(log_filters).where(log_filters.c.user_id == user.id)
+    result = await session.execute(query)
+    filter_data = result.first()
+    return filter_data.filters if filter_data else {}

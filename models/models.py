@@ -1,6 +1,6 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from sqlalchemy import DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
+from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
 
 metadata = MetaData()
 
@@ -16,7 +16,7 @@ user = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String),
-    Column("owners_id", Integer, ForeignKey(owner.c.id), nullable=True),
+    Column("owners_id", Integer, ForeignKey(owner.c.id, ondelete='SET NULL'), nullable=True),
     Column("email", String),
     Column("hashed_password", String),
     Column("is_active", Boolean),
@@ -34,4 +34,12 @@ logs = Table(
     Column("message", String),
     Column("error_type", String, default='-', nullable=True),
     Column("color", String, default='green', nullable=True),
+)
+
+log_filters = Table(
+    "log_filters",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("user_id", Integer, ForeignKey(user.c.id, ondelete="CASCADE"), nullable=True),
+    Column("filters", JSON, nullable=True, default={})
 )

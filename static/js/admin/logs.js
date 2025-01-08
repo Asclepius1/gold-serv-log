@@ -1,22 +1,47 @@
+
+let currentSort = { column: "datetime", order: "desc" };
+let selectedDateRange = null;
+let color = null;
+
+async function saveFilters() {
+    const filters = {
+        id: document.getElementById("filter-id").value.trim(),
+        owner: document.getElementById("filter-owner").value.trim(),
+        message: document.getElementById("filter-message").value.trim(),
+        dateFrom: selectedDateRange?.from || null,
+        dateTo: selectedDateRange?.to || null,
+        errorType: document.getElementById("filter-error-type").value.trim(),
+        currentSort: currentSort || { column: "datetime", order: "desc" },
+        color: color || null,
+    };
+    await fetch("/logs/filters", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify(filters)
+    });
+    loadLogs()
+}
+
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
     // Прослушиваем изменения в полях фильтров
-    document.getElementById("filter-id").addEventListener("input", () => loadLogs());
-    document.getElementById("filter-owner").addEventListener("input", () => loadLogs());
-    document.getElementById("filter-message").addEventListener("input", () => loadLogs());
+    document.getElementById("filter-id").addEventListener("input", () => saveFilters());
+    document.getElementById("filter-owner").addEventListener("input", () => saveFilters());
+    document.getElementById("filter-message").addEventListener("input", () => saveFilters());
+    document.getElementById("filter-error-type").addEventListener("input", () => saveFilters());
 
-    // Добавить сюда другие события для других фильтров, если нужно
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const dateRangeButton = document.getElementById("date-range-selector");
-
-    dateRangeButton.addEventListener("click", function () {
+    document.getElementById("date-range-selector").addEventListener("click", function () {
         const startDate = document.getElementById("start-date").value;
         const endDate = document.getElementById("end-date").value;
 
         if (startDate && endDate) {
             selectedDateRange = { from: startDate, to: endDate };
-            loadLogs(); // Перезагружаем данные с новыми фильтрами
+            saveFilters();
         } else {
             alert("Пожалуйста, выберите оба диапазона дат.");
         }
@@ -25,34 +50,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function selectColor(selectedColor){
     color = selectedColor;
-    loadLogs();
+    saveFilters();
 };
 
-let currentSort = { column: "datetime", order: "desc" };
-let selectedDateRange = null;
-let color = null;
+function setToInputCurrentValues(filter){
+    document.getElementById("filter-id").value = filter.id;
+    document.getElementById("filter-owner").value = filter.owner;
+    document.getElementById("filter-message").value = filter.message;
+    document.getElementById("filter-error-type").value = filter.errorType;
+    document.getElementById("start-date").value = filter.dateFrom;
+    document.getElementById("end-date").value = filter.dateTo;
+    color = filter.color;
+    currentSort = filter.currentSort;
+}
+
 async function loadLogs(page = 1) {
     const pageSize = 50;
-
-    const filters = {
-        id: document.getElementById("filter-id").value.trim(),
-        owner: document.getElementById("filter-owner").value.trim(),
-        message: document.getElementById("filter-message").value.trim(),
-        dateFrom: selectedDateRange?.from || null,
-        dateTo: selectedDateRange?.to || null,
-        errorType: document.getElementById("filter-error-type").value.trim(),
-        color: color || null,
-    };
-
-    const sortColumn = currentSort.column || "datetime";
-    const sortOrder = currentSort.order || "desc";
-
+    // const sortColumn = currentSort.column || "datetime";
+    // const sortOrder = currentSort.order || "desc";
+        
+    const filters = await fetch("/logs/filters", {
+        method: "GET",
+        credentials: "include"
+    }).then(res => res.json());
+    
+    setToInputCurrentValues(filters);
     // Формируем URL с параметрами
     const params = new URLSearchParams({
         page,
         page_size: pageSize,
-        sort_by: sortColumn,
-        sort_order: sortOrder
+        // sort_by: sortColumn,
+        // sort_order: sortOrder
     });
 
     if (filters.id) params.append("log_id", filters.id);
@@ -62,6 +90,8 @@ async function loadLogs(page = 1) {
     if (filters.dateTo) params.append("end_date", filters.dateTo);
     if (filters.errorType) params.append("error_type", filters.errorType);
     if (filters.color) params.append("color", filters.color);
+    if (filters.currentSort) params.append("sort_by", filters.currentSort.column);
+    if (filters.currentSort) params.append("sort_order", filters.currentSort.order);
 
     try {
         const response = await fetch(`/logs?${params.toString()}`, {
@@ -111,16 +141,19 @@ function toggleSort(column) {
         currentSort.column = column;
         currentSort.order = "asc";
     }
-    loadLogs();
+    saveFilters();
 };
 
 function resetFilters() {
     currentSort = { column: "datetime", order: "desc" };
     selectedDateRange = null;
-    color = null;
+    localStorage.removeItem("logFilters");
     document.getElementById("filter-id").value = "";
     document.getElementById("filter-owner").value = "";
     document.getElementById("filter-message").value = "";
     document.getElementById("filter-error-type").value = "";
-    loadLogs();
-  }
+    document.getElementById("start-date").value = "";
+    document.getElementById("end-date").value = "";
+    color = null;
+    saveFilters();
+}

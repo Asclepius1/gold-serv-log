@@ -1,55 +1,21 @@
-import asyncio
-import pytz
-
 from datetime import datetime
 from config import HOST
 from api import api_router
-from api.logs import run_add_logs
-
-from sqlalchemy import select
 
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from fastapi import Depends, FastAPI, Query, Response, status, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import PlainTextResponse
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 
 from auth.auth import auth_backend, fastapi_users, current_user
 from auth.schemas import UserCreate, UserRead, UserUpdate
 
-from contextlib import asynccontextmanager
-
-timezone_almaty = pytz.timezone('Asia/Almaty')
-
-import sys
-
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # scheduler = BackgroundScheduler()
-    scheduler = AsyncIOScheduler()
-
-    scheduler.add_job(run_add_logs, 'cron', hour=7, minute=0, timezone=timezone_almaty)
-    scheduler.add_job(run_add_logs, 'cron', hour=13, minute=20, timezone=timezone_almaty)
-    scheduler.add_job(run_add_logs, 'cron', hour=18, minute=20, timezone=timezone_almaty)
-    # scheduler.add_job(run_add_logs, 'date', run_date=datetime.now())
-
-    scheduler.start()
-    print("Планировщик запущен")
-    
-    yield  # Даем FastAPI стартовать
-
-    scheduler.shutdown()
-    print("Планировщик остановлен")
+from schedule import lifespan
 
 app = FastAPI(lifespan=lifespan)
 

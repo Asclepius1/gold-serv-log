@@ -64,6 +64,34 @@ function setToInputCurrentValues(filter){
     currentSort = filter.currentSort;
 }
 
+function loadAutoRefreshCheckbox(){
+    fetch("/logs/get_autorefresh")
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("autorefresh-checkbox").checked = data.autorefresh;
+    });
+}
+
+function toggleAutorefresh(checkbox){
+    const state = checkbox.checked; // Получаем состояние чекбокса
+    console.log("Автообновление:", state ? "Включено" : "Отключено");
+    fetch(`/logs/set_autorefresh?state=${state}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        // params: {
+        //     "state": state,
+        // }
+        // body: JSON.stringify({state: state})
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Статус обновления:', data);
+    })
+    .catch(error => console.error('Ошибка:', error))
+}
+
 async function loadLogs(page = 1) {
     const pageSize = 50;
     // const sortColumn = currentSort.column || "datetime";
@@ -73,8 +101,10 @@ async function loadLogs(page = 1) {
         method: "GET",
         credentials: "include"
     }).then(res => res.json());
-    
+
+    loadAutoRefreshCheckbox();
     setToInputCurrentValues(filters);
+
     // Формируем URL с параметрами
     const params = new URLSearchParams({
         page,

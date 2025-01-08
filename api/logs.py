@@ -14,8 +14,9 @@ from sqlalchemy import Text, cast, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import logs, log_filters
-from models.db import get_async_session
+from models.db import get_async_session, get_autorefresh_state, set_autorefresh_state
 from auth.auth import superuser_required
+from schedule import update_scheduler
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -203,3 +204,14 @@ async def get_filters(
     result = await session.execute(query)
     filter_data = result.first()
     return filter_data.filters if filter_data else {}
+
+@router.post("/set_autorefresh")
+async def set_autorefresh(state: bool):
+    set_autorefresh_state(state)
+    await update_scheduler()  # Обновляем планировщик
+    return {"autorefresh": state}
+
+@router.get("/get_autorefresh")
+async def get_autorefresh():
+    state = get_autorefresh_state()
+    return {"autorefresh": state}

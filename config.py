@@ -16,3 +16,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 
 BEARER_TOKEN_GOLD_SERV = os.getenv("BEARER_TOKEN_GOLD_SERV")
 GOLD_SERV_API_URL = os.getenv("GOLD_SERV_API_URL")
+
+REDIS_HOST = os.environ.get("REDIS_HOST")
+REDIS_PASS = os.environ.get("REDIS_PASS")

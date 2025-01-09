@@ -165,7 +165,7 @@ async function loadLogs(page = 1) {
     }
 }
 
-setInterval(loadLogs, 900000, 1);
+setInterval(loadLogs, 600000, 1);
 
 function toggleSort(column) {
     if (currentSort.column === column) {

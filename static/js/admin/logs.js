@@ -93,9 +93,10 @@ function toggleAutorefresh(checkbox){
 }
 
 async function loadLogs(page = 1) {
-    const pageSize = 50;
     // const sortColumn = currentSort.column || "datetime";
     // const sortOrder = currentSort.order || "desc";
+    const pageSize = 50;
+    console.log("hello")
         
     const filters = await fetch("/logs/filters", {
         method: "GET",
@@ -163,6 +164,8 @@ async function loadLogs(page = 1) {
         console.error("Ошибка загрузки логов:", error);
     }
 }
+
+setInterval(loadLogs, 900000, 1);
 
 function toggleSort(column) {
     if (currentSort.column === column) {

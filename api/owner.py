@@ -25,7 +25,7 @@ async def get_all_owners():
 
 
 
-@router.post("/update-all/")
+@router.get("/update-all/")
 async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session)):
     url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
@@ -46,7 +46,7 @@ async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_sess
             if new_owners:
                 # Добавляем новых владельцев в базу данных
                 new_owners_data = [{'name': owner} for owner in new_owners]
-                session.execute(owner.insert(), new_owners_data)
+                await session.execute(owner.insert(), new_owners_data)
                 await session.commit()
     raise HTTPException(status_code=404, detail="Не получилось добавить владельцев")
 

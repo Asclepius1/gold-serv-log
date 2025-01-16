@@ -65,11 +65,14 @@ async function downloadFilesById(file_id) {
     const contentDisposition = response.headers.get("Content-Disposition");
     let filename = "downloaded_file";
     if (contentDisposition) {
-        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?(.+)/);
+        let match = contentDisposition.match(/filename\*?=(?:UTF-8'')?(.+)/);
         if (match) {
-            filename = decodeURIComponent(match[1].replace(/["']/g, ""));
+            filename = decodeURIComponent(match[1]).replace(/["']/g, "");
         }
     }
+
+    // Убираем префикс "utf-8" (если есть)
+    filename = filename.replace(/^utf-8/i, "");
 
     // Читаем тело ответа как Blob
     const blob = await response.blob();

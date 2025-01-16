@@ -1,6 +1,6 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
+from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey, Text
 
 metadata = MetaData()
 
@@ -42,4 +42,14 @@ log_filters = Table(
     Column("id", Integer, primary_key=True, index=True),
     Column("user_id", Integer, ForeignKey(user.c.id, ondelete="CASCADE"), nullable=True),
     Column("filters", JSON, nullable=True, default={})
+)
+
+files = Table(
+    "files",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='SET NULL'), nullable=True),
+    Column("filename", String),   
+    Column("file_path", String),
+    Column("created_at", DateTime, default=datetime.now()),   
 )

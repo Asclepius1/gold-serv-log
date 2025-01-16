@@ -17,7 +17,8 @@ from auth.schemas import UserCreate, UserRead, UserUpdate
 
 from schedule import lifespan
 
-app = FastAPI(lifespan=lifespan)
+# app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 @app.exception_handler(StarletteHTTPException)
 async def unauthorized_exception_handler(request: Request, exc: HTTPException):

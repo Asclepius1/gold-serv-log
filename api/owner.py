@@ -1,3 +1,4 @@
+import requests
 import models.schemas as sch
 from models.models import owner
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -8,8 +9,47 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.db import get_async_session
 from auth.auth import superuser_required
+from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 
 router = APIRouter(prefix="/owners", tags=["owners"])
+
+
+async def get_all_owners():
+    url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
+    headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
+    response = requests.get(url, headers=headers, verify=False)
+
+    if response.status_code == 200:
+        if data := response.json():
+            session = get_async_session
+
+
+
+@router.post("/update-all/")
+async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session)):
+    url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
+    headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
+    response = requests.get(url, headers=headers, verify=False)
+
+    if response.status_code == 200:
+        if data := response.json():
+            owner_list = data['DeposCode']
+
+            # Проверяем, какие владельцы уже есть в базе данных
+            existing_owners_query = select(owner).filter(owner.c.name.in_(owner_list))
+            result = await session.execute(existing_owners_query)
+            existing_owners = {owner.name for owner in result.scalars().all()}
+
+            # Фильтруем новый список владельцев, чтобы не добавлять тех, кто уже есть в базе
+            new_owners = [owner for owner in owner_list if owner not in existing_owners]
+
+            if new_owners:
+                # Добавляем новых владельцев в базу данных
+                new_owners_data = [{'name': owner} for owner in new_owners]
+                session.execute(owner.insert(), new_owners_data)
+                await session.commit()
+    raise HTTPException(status_code=404, detail="Не получилось добавить владельцев")
+
 
 @router.post("", response_model=sch.OwnerRead)
 async def create_owner(owner_data: sch.OwnerCreate, session: AsyncSession = Depends(get_async_session), 
@@ -29,7 +69,7 @@ async def read_owners(session: AsyncSession = Depends(get_async_session),  user:
     return owners
 
 @router.get("/{owner_id}", response_model=sch.OwnerRead)
-async def read_owner(owner_id: int,session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+async def read_owner(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
     
     db_owner = select(owner).where(owner.c.id == owner_id)
     result = await session.execute(db_owner)
@@ -68,3 +108,4 @@ async def delete_owner(owner_id: int, session: AsyncSession = Depends(get_async_
     await session.commit()
 
     return {"message": f"Владелец с id {owner_id} удалена!"}
+

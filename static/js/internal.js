@@ -40,10 +40,6 @@ async function reloadOwnerFilesById(id) {
     const response = await fetch(`/files/upload/?owner_id=${id}`, {
         method: 'POST',
         credentials: 'include',
-        // headers: {
-        //     'Content-Type': 'application/json'
-        // },
-        // body: JSON.stringify({ owner_id: id })
     })
 
     if (!response.ok) {
@@ -69,9 +65,9 @@ async function downloadFilesById(file_id) {
     const contentDisposition = response.headers.get("Content-Disposition");
     let filename = "downloaded_file";
     if (contentDisposition) {
-        const match = contentDisposition.match(/filename="(.+?)"/);
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?(.+)/);
         if (match) {
-            filename = match[1];
+            filename = decodeURIComponent(match[1].replace(/["']/g, ""));
         }
     }
 

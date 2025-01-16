@@ -37,15 +37,15 @@ async function getFilesByOwnerId(id) {
 }
 
 async function reloadOwnerFilesById(id) {
-    const response = await fetch(`/files/upload/`, {
+    const response = await fetch(`/files/upload/?owner_id=${id}`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ owner_id: id })
+        // headers: {
+        //     'Content-Type': 'application/json'
+        // },
+        // body: JSON.stringify({ owner_id: id })
     })
-    
+
     if (!response.ok) {
         const errorData = await response.json();
         console.error("Ошибка загрузки файлов:", errorData.detail);

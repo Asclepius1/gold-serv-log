@@ -43,7 +43,7 @@ def get_files_by_owner(owner: str) -> Path|None:
             f.write(response.content)
 
         print(f"Файл сохранен как {file_path}.xlsx")
-        return str(file_path)
+        return file_path
     else:
         print(f"Ошибка: {response.status_code}")
 

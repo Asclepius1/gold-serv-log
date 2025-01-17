@@ -1,16 +1,13 @@
-import asyncio
-from typing import List
 from datetime import datetime, time
 
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from auth.db import User
-from auth.schemas import UserCreate, UserRead
 
 from sqlalchemy.future import select
-from sqlalchemy import Text, cast, or_
+from sqlalchemy import Text, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import logs, log_filters
@@ -130,7 +127,6 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
     latest_current_log = logs.select().order_by(logs.c['datetime'].desc()).limit(1)
     result = await session.execute(latest_current_log)
     latest_current_log = result.fetchone()
-    print(latest_current_log)
     url = f'{GOLD_SERV_API_URL}'
     if datetime_:
         url+=f'/?date={datetime_}'
@@ -139,7 +135,6 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
 
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
     respone = requests.get(url, headers=headers, verify=False)
-    print(respone.status_code)
     
     if respone.status_code == 200:
         data: list[dict] = respone.json()

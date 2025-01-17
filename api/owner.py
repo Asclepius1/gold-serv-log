@@ -1,7 +1,7 @@
 import requests
 import models.schemas as sch
 from models.models import owner
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from auth.db import User
 from sqlalchemy import select, update, delete

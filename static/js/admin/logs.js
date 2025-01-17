@@ -96,7 +96,6 @@ async function loadLogs(page = 1) {
     // const sortColumn = currentSort.column || "datetime";
     // const sortOrder = currentSort.order || "desc";
     const pageSize = 50;
-    console.log("hello")
         
     const filters = await fetch("/logs/filters", {
         method: "GET",

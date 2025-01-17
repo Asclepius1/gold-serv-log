@@ -142,9 +142,6 @@ async function SaveUserChanges(){
     
     const ownerId = document.getElementById("dropdownOwner").getAttribute("owner-id");
 
-    console.log(ownerId)
-
-
     const data = {};
     if (passwordInputValue) data.password = passwordInputValue;
     if (emailInputValue) data.email = emailInputValue;

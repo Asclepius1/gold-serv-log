@@ -1,5 +1,3 @@
-from typing import Any, Coroutine
-
 from fastapi import Depends, HTTPException, Request, status
 from config import SECRET_KEY
 

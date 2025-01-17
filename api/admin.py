@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from fastapi import Depends, HTTPException
-from typing import List
-from auth.auth import current_user, superuser_required
+from fastapi import Depends
+from auth.auth import superuser_required
 from auth.db import User
 
 templates = Jinja2Templates(directory="templates")

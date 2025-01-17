@@ -1,6 +1,5 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
-from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey, Text
+from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
 
 metadata = MetaData()
 

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from typing import List
 from auth.db import User
-from auth.schemas import UserCreate, UserRead
+from auth.schemas import UserRead
 
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,25 +1,21 @@
-import asyncio
 import os
 import time as time_
 import random
-from typing import List
 from pathlib import Path
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 
 from fastapi.responses import FileResponse
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 
 from sqlalchemy.future import select
-from sqlalchemy import Text, cast, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import files, owner as owner_db
 from models.db import get_async_session, redis_client
-from auth.auth import superuser_required, current_user
+from auth.auth import current_user
 from auth.db import User
-from schedule import update_scheduler
 
 router = APIRouter(prefix="/files", tags=["files"], )
 
@@ -90,7 +86,6 @@ async def download_file(file_id: int, session: AsyncSession = Depends(get_async_
 async def delete_old_files():
     async for session in get_async_session():
         threshold_date = datetime.now() - timedelta(days=30)
-        print(threshold_date)
         # Получаем только `file_path` и `id`, чтобы не загружать лишние данные
         result = await session.execute(select(files.c.id, files.c.file_path).where(files.c.created_at < threshold_date))
         old_files = result.all()

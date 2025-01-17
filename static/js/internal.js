@@ -67,7 +67,6 @@ async function getFilesByOwnerId(id) {
         method: 'GET',
         credentials: 'include',
     });
-    console.log(response)
     if (response.ok) {
         const files = await response.json();
         return files
@@ -135,7 +134,6 @@ async function loadFiles(path = "", id = null) {
     const spinner = document.getElementById("spinner");
     spinner.style.display = "block";
     table.innerHTML = "";
-    console.log(path)
     document.getElementById("fileBtns").style.display = path ? "block" : "none";
 
     let files = [];

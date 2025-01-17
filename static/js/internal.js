@@ -33,7 +33,7 @@ function startCountdown(buttonId, time) {
         } else {
             let hours = Math.floor(time / 3600);
             let minutes = Math.floor((time % 3600) / 60);
-            let seconds = time % 60;
+            let seconds = Math.floor(time % 60);
             document.getElementById(`timeRemaining_${buttonId}`).innerText = `${hours}ч ${minutes}м ${seconds}с`;
         }
     }, 1000);

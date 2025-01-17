@@ -12,14 +12,6 @@ templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="", tags=["content"])
 
 
-@router.get("/h-route")
-def protected_route(user: User = Depends(current_user)):
-    return [user]
-
-@router.get("/nh-route")
-def neprotected_route():
-    return f"Hello, ho"
-
 @router.get('/login', response_class=HTMLResponse)
 async def login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "title": "Логин"})

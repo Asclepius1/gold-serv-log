@@ -105,7 +105,6 @@ def get_current_data(data: list[dict], last_log: dict) -> list[dict]:
 
     
 async def run_add_logs():
-    # asyncio.run(_add_logs_wrapper())
     await _add_logs_wrapper()
 
 async def _add_logs_wrapper():
@@ -126,7 +125,7 @@ def check_error(message: str):
     return "green", "-"
 
 @router.post("")
-async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(get_async_session)):
+async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
     
     latest_current_log = logs.select().order_by(logs.c['datetime'].desc()).limit(1)
     result = await session.execute(latest_current_log)
@@ -206,12 +205,12 @@ async def get_filters(
     return filter_data.filters if filter_data else {}
 
 @router.post("/set_autorefresh")
-async def set_autorefresh(state: bool):
+async def set_autorefresh(state: bool, user: User = Depends(superuser_required)):
     set_autorefresh_state(state)
     await update_scheduler()  # Обновляем планировщик
     return {"autorefresh": state}
 
 @router.get("/get_autorefresh")
-async def get_autorefresh():
+async def get_autorefresh(user: User = Depends(superuser_required)):
     state = get_autorefresh_state()
     return {"autorefresh": state}

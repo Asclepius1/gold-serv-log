@@ -16,7 +16,7 @@ async def get_all_users(
     session: AsyncSession = Depends(get_async_session), 
     user: User = Depends(superuser_required) 
 ):
-    query = select(User)
+    query = select(User).order_by(User.id)
     result = await session.execute(query)
     users = result.scalars().all()
     return users

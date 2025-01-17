@@ -137,7 +137,7 @@ async function SaveUserChanges(){
     const emailInputValue = inputEmail.value;
     const passwordInputValue = inputPassword.value;
 
-    const is_superuser_bool = document.getElementById("dropdownSuperuser").textContent;
+    const is_superuser_bool = document.getElementById("dropdownSuperuser").textContent.replace(/\s/g, '');
     const is_superuser = is_superuser_bool == "Да" ? true : false 
     
     const ownerId = document.getElementById("dropdownOwner").getAttribute("owner-id");
@@ -151,7 +151,6 @@ async function SaveUserChanges(){
     if (is_superuser !== undefined) data.is_superuser = is_superuser;
     data.owners_id = ownerId;
     nameInputValue ? data.name = nameInputValue : data.name = inputName.getAttribute("placeholder")
-
     const response = await fetch(`/users/${userId}`, {
         method: 'PATCH',
         credentials: 'include', // Для CookieTransport

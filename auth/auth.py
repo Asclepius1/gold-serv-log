@@ -33,6 +33,7 @@ fastapi_users = FastAPIUsers[User, int](
 current_user = fastapi_users.current_user(active=True)
 
 async def superuser_required(request: Request, user: str = Depends(current_user)):
+    print(user.is_superuser)
     # Ваша логика проверки токена и получения пользователя
     if not user.is_superuser:
         raise HTTPException(

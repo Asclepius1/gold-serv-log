@@ -8,7 +8,7 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.db import get_async_session
-from auth.auth import superuser_required
+from auth.auth import superuser_required, current_user
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 
 router = APIRouter(prefix="/owners", tags=["owners"])
@@ -26,7 +26,7 @@ async def get_all_owners():
 
 
 @router.get("/update-all/")
-async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session)):
+async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required) ):
     url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
     response = requests.get(url, headers=headers, verify=False)
@@ -70,7 +70,7 @@ async def read_owners(session: AsyncSession = Depends(get_async_session),  user:
     return owners
 
 @router.get("/{owner_id}", response_model=sch.OwnerRead)
-async def read_owner(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+async def read_owner(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
     
     db_owner = select(owner).where(owner.c.id == owner_id)
     result = await session.execute(db_owner)

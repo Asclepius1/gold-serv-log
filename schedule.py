@@ -1,9 +1,11 @@
 import asyncio
+from datetime import datetime
 from fastapi import FastAPI
 import pytz
 from models.db import get_autorefresh_state
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
+
 
 
 timezone_almaty = pytz.timezone('Asia/Almaty')
@@ -42,10 +44,13 @@ async def update_scheduler():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from api.files import delete_old_files
 
     scheduler.start()
     print("Планировщик запущен")
     
+    scheduler.add_job(delete_old_files, "cron", hour=0, minute=0, timezone=timezone_almaty)
+
     yield  # Даем FastAPI стартовать
 
     scheduler.shutdown()

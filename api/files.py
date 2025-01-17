@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time as time_
 import random
 from typing import List
 from pathlib import Path
@@ -15,7 +16,7 @@ from sqlalchemy import Text, cast, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import files, owner as owner_db
-from models.db import get_async_session, get_autorefresh_state, set_autorefresh_state
+from models.db import get_async_session, redis_client
 from auth.auth import superuser_required
 from schedule import update_scheduler
 
@@ -118,3 +119,53 @@ async def get_file_path_by_owner_id(owner_id: int, session: AsyncSession = Depen
             for item in result
         ]
     raise HTTPException(status_code=404, detail="Файл не найден")
+
+
+BUTTON_KEY = "button_press"
+
+def get_button_status(button_id: str):
+    current_time = int(time_.time())
+    button_key = f"button_press:{button_id}"
+
+    # Получаем данные по конкретной кнопке
+    press_data = redis_client.hgetall(button_key)
+
+    if not press_data:
+        redis_client.hset(button_key, mapping={"count": 0, "last_press": 0})
+
+    press_count = int(press_data.get("count", 0))
+    last_press_time = int(press_data.get("last_press", 0))
+
+    # Если прошло 24 часа с первого нажатия, сбрасываем счетчик
+    if press_count >= 2 and (current_time - last_press_time) >= 43200:
+        redis_client.hset(button_key, mapping={"count": 0, "last_press": 0})
+        press_count = 0
+        last_press_time = 0
+
+    return {
+        "button_id": button_id,
+        "attempts_left": max(0, 2 - press_count),
+        "last_press_time": last_press_time
+    }
+
+@router.get("/button_status/{button_id}")
+def button_status(button_id: str):
+    return get_button_status(button_id)
+
+@router.post("/press_button/{button_id}")
+def press_button(button_id: str):
+    current_time = int(time_.time())
+    button_key = f"button_press:{button_id}"
+    status = get_button_status(button_id)
+
+    if status["attempts_left"] == 0:
+        raise HTTPException(status_code=429, detail="Лимит нажатий исчерпан")
+
+    if status["last_press_time"] > 0 and (current_time - status["last_press_time"]) < 14400:
+        raise HTTPException(status_code=429, detail="Можно нажать через 4 часа")
+
+    # Обновляем Redis
+    redis_client.hset(button_key, "last_press", current_time)
+    redis_client.hincrby(button_key, "count", 1)
+
+    return {"message": f"Кнопка {button_id} нажата!"}

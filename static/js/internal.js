@@ -1,16 +1,54 @@
-const dummyData = {
-    "": [
-        { "name": "ALS", "type": "folder", "date": "15.01.2025 14:12" },
-        { "name": "BDS", "type": "folder", "date": "15.01.2025 14:12" },
-    ],
-    "ALS": [
-        { "name": "log1.xlsx", "type": "file", "date": "15.01.2025 14:12" },
-        { "name": "log2.xlsx", "type": "file", "date": "15.01.2025 14:12" }
-    ],
-    "BDS": [
-        { "name": "docker-compose.xlsx", "type": "file", "date": "15.01.2025 14:12" }
-    ]
-};
+async function ButtonStatus(buttonId) {
+    const response = await fetch(`/files/button_status/${buttonId}`,{
+        method: 'GET',
+        credentials: 'include',
+    });
+    const data = await response.json();
+
+    document.getElementById(`attempts_${buttonId}`).innerText = data.attempts_left;
+
+    if (data.last_press_time > 0) {
+        let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
+        startCountdown(buttonId, timeRemaining);
+    } else {
+        document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
+        document.getElementById(`reloadBtn`).disabled = data.attempts_left === 0;
+    }
+}
+
+function startCountdown(buttonId, time) {
+    if (time <= 0) {
+        document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
+        document.getElementById(`reloadBtn`).disabled = false;
+        return;
+    }
+
+    document.getElementById(`reloadBtn`).disabled = true;
+    let interval = setInterval(() => {
+        time--;
+        if (time <= 0) {
+            clearInterval(interval);
+            document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
+            document.getElementById(`reloadBtn`).disabled = false;
+        } else {
+            let hours = Math.floor(time / 3600);
+            let minutes = Math.floor((time % 3600) / 60);
+            let seconds = time % 60;
+            document.getElementById(`timeRemaining_${buttonId}`).innerText = `${hours}ч ${minutes}м ${seconds}с`;
+        }
+    }, 1000);
+}
+
+async function pressButton(buttonId) {
+    const response = await fetch(`/files/press_button/${buttonId}`,{
+        method: 'POST',
+        credentials: 'include',
+    });
+    const data = await response.json();
+    console.log(data.message);
+    ButtonStatus(buttonId);
+}
+
 
 async function getOwners(){
     const response = await fetch('/owners', {
@@ -37,6 +75,7 @@ async function getFilesByOwnerId(id) {
 }
 
 async function reloadOwnerFilesById(id) {
+    pressButton(id)
     const response = await fetch(`/files/upload/?owner_id=${id}`, {
         method: 'POST',
         credentials: 'include',
@@ -48,6 +87,7 @@ async function reloadOwnerFilesById(id) {
     } else {
         const data = await response.json();
         console.log("Файл успешно загружен:", data.message);
+        loadFiles(path="", id=id);
     }
 }
 
@@ -98,17 +138,20 @@ async function loadFiles(path = "", id = null) {
     console.log(path)
     document.getElementById("fileBtns").style.display = path ? "block" : "none";
 
-    // const files = dummyData[path] || [];
     let files = [];
     try {
         if (!id) {
             files = await getOwners() || [];
         } else {
-            document.getElementById("reloadBtn").onclick = function() {
-                reloadOwnerFilesById(id);
-            };
+            const reloadItems = document.getElementById("reloadItems");
+            reloadItems.innerHTML = '';
+            reloadItems.innerHTML = `
+            <span id="timeRemaining_${id}" timer>-</span>
+            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
+            `;
+            
+            ButtonStatus(id);
             files = await getFilesByOwnerId(id) || [];
-            console.log(files);
         }
 
         // Заполняем таблицу

@@ -74,7 +74,7 @@ async function getFilesByOwnerId(id) {
     }
 }
 
-async function reloadOwnerFilesById(id) {
+async function reloadOwnerFilesById(path, id) {
     pressButton(id)
     const response = await fetch(`/files/upload/?owner_id=${id}`, {
         method: 'POST',
@@ -87,7 +87,7 @@ async function reloadOwnerFilesById(id) {
     } else {
         const data = await response.json();
         console.log("Файл успешно загружен:", data.message);
-        loadFiles(path="", id=id);
+        loadFiles(path=path, id=id);
     }
 }
 
@@ -147,7 +147,7 @@ async function loadFiles(path = "", id = null) {
             reloadItems.innerHTML = '';
             reloadItems.innerHTML = `
             <span id="timeRemaining_${id}" timer>-</span>
-            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
+            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(path=${path}, id=${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
             `;
             
             ButtonStatus(id);

@@ -125,7 +125,7 @@ async function updateAllOwners(){
     });
 
     if (response.ok){
-        console.log(await response.json())
+        console.log(response.text())
         loadOwners()
         return
     }

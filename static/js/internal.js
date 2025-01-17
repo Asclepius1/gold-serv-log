@@ -147,7 +147,7 @@ async function loadFiles(path = "", id = null) {
             reloadItems.innerHTML = '';
             reloadItems.innerHTML = `
             <span id="timeRemaining_${id}" timer>-</span>
-            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(path=${path}, id=${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
+            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(path='${path}', id=${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
             `;
             
             ButtonStatus(id);

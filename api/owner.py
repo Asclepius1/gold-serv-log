@@ -36,7 +36,7 @@ async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_sess
                 await session.execute(owner.insert(), new_owners_data)
                 await session.commit()
                 return {"message": f"Владелецы были добавлены в кол-ве: {len(new_owners)}"}
-            return {'status_code': 204, 'message': 'Нету новых данных для вставки'}
+            return {'message': 'Нету новых данных для вставки'}
     raise HTTPException(status_code=404, detail="Не получилось добавить владельцев")
 
 

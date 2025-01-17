@@ -106,7 +106,7 @@ async def delete_old_files():
 
 @router.get("/{owner_id}")
 async def get_file_path_by_owner_id(owner_id: int, session: AsyncSession = Depends(get_async_session)):
-    result = await session.execute(files.select().where(files.c.owner_id == owner_id))
+    result = await session.execute(files.select().where(files.c.owner_id == owner_id).order_by(files.c.created_at.desc()))
     files_data = result.scalars()
     if files_data:
         return [

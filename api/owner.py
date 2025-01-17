@@ -13,18 +13,6 @@ from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 
 router = APIRouter(prefix="/owners", tags=["owners"])
 
-
-async def get_all_owners():
-    url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
-    headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    response = requests.get(url, headers=headers, verify=False)
-
-    if response.status_code == 200:
-        if data := response.json():
-            session = get_async_session
-
-
-
 @router.get("/update-all/")
 async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required) ):
     url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"

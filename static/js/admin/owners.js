@@ -117,3 +117,17 @@ async function addNewOwner(){
         errorMessage.textContent = 'Некоторые поля остались пустыми, прошу заполнить и попробовать еще раз!';
     }
 }
+
+async function updateAllOwners(){
+    const response = await fetch('/owners/update-all/', {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (response.ok){
+        console.log(await response.json())
+        loadOwners()
+        return
+    }
+    console.log(response.text())
+}

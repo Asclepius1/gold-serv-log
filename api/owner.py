@@ -26,7 +26,7 @@ async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_sess
             # Проверяем, какие владельцы уже есть в базе данных
             existing_owners_query = select(owner).filter(owner.c.name.in_(owner_list))
             result = await session.execute(existing_owners_query)
-            existing_owners = {owner.name for owner in result.fetchall()}
+            existing_owners = set(result.scalars().all())
 
             # Фильтруем новый список владельцев, чтобы не добавлять тех, кто уже есть в базе
             new_owners = [owner for owner in owner_list if owner not in existing_owners]
@@ -37,7 +37,7 @@ async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_sess
                 await session.execute(owner.insert(), new_owners_data)
                 await session.commit()
                 return {"message": f"Владелецы были добавлены в кол-ве: {len(new_owners)}"}
-            raise HTTPException(status_code=204, detail='Нету новых данных для втсавки')
+            raise HTTPException(status_code=204)
     raise HTTPException(status_code=404, detail="Не получилось добавить владельцев")
 
 

@@ -26,7 +26,7 @@ async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_sess
             # Проверяем, какие владельцы уже есть в базе данных
             existing_owners_query = select(owner).filter(owner.c.name.in_(owner_list))
             result = await session.execute(existing_owners_query)
-            existing_owners = {owner.name for owner in result.scalars().all()}
+            existing_owners = {owner[0] for owner in result.fetchall()}
 
             # Фильтруем новый список владельцев, чтобы не добавлять тех, кто уже есть в базе
             new_owners = [owner for owner in owner_list if owner not in existing_owners]

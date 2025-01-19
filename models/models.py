@@ -50,5 +50,5 @@ files = Table(
     Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='SET NULL'), nullable=True),
     Column("filename", String),   
     Column("file_path", String),
-    Column("created_at", DateTime, default=datetime.now()),   
+    Column("created_at", DateTime, default=datetime.now),   
 )

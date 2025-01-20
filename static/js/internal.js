@@ -7,7 +7,11 @@ async function ButtonStatus(buttonId) {
 
     document.getElementById(`attempts_${buttonId}`).innerText = data.attempts_left;
 
-    if (data.last_press_time > 0) {
+    if (data.attempts_left == 0){
+        document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
+        document.getElementById(`reloadBtn`).disabled = true;
+    }
+    else if (data.last_press_time > 0) {
         let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
         startCountdown(buttonId, timeRemaining);
     } else {

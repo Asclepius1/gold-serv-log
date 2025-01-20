@@ -136,8 +136,8 @@ def get_button_status(button_id: str):
     press_count = int(press_data.get("count", 0))
     last_press_time = int(press_data.get("last_press", 0))
 
-    # Если прошло 24 часа с первого нажатия, сбрасываем счетчик
-    if press_count >= 2 and (current_time - last_press_time) >= 43200:
+    # Если прошло 12 часов с первого нажатия, сбрасываем счетчик
+    if press_count >= 1 and (current_time - last_press_time) >= 43200:
         redis_client.hset(button_key, mapping={"count": 0, "last_press": 0})
         press_count = 0
         last_press_time = 0

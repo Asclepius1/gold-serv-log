@@ -114,7 +114,7 @@ async function saveReportAccessChanges() {
     }));
 
     try {
-        const response = await fetch(`/files/owners/${reportId}/access`, {
+        const response = await fetch(`/files/reports/${reportId}/access`, {
             method: 'POST',
             credentials: 'include',
             headers: {

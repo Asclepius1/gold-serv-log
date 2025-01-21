@@ -239,9 +239,10 @@ async def update_report_access(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(superuser_required),
 ):
-    print(access_changes)
-    return {"message": "Доступ успешно обновлен"}
+    
     for change in access_changes:
+        print(change)
+        return
         owner_id = change.owner_id
         has_access = change.has_access
 

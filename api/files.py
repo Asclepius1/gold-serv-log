@@ -157,33 +157,18 @@ async def get_file_path_by_owner_id(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_user),
 ):
-    # Присоединяем таблицу reports к таблице files
-    query = (
-        select(
-            files.c.id,
-            files.c.filename,
-            reports.c.name.label("report_name"),
-            files.c.created_at,
-        )
-        .join(reports, reports.c.id == files.c.report_id, isouter=True)  # Присоединение таблицы reports
-        .where(files.c.owner_id == owner_id)
-        .order_by(files.c.created_at.desc())
-    )
-    result = await session.execute(query)
-    files_data = result.fetchall()
-
+    result = await session.execute(files.select().where(files.c.owner_id == owner_id).order_by(files.c.created_at.desc()))
+    files_data = result.scalars()
+    
     if files_data:
         return [
             {
                 "id": item.id,
                 "name": item.filename,
-                "report": item.report_name or '',  # Название отчета или пустая строка
+                "report": item.report_name or '',
                 "date": item.created_at,
-                "type": "file",
-            }
-            for item in files_data
+            } for item in result
         ]
-    
     raise HTTPException(status_code=404, detail="Файл не найден")
 
 

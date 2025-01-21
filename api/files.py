@@ -75,14 +75,17 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
     )
     result = await session.execute(query)
     params = result.scalars().all()
+    
+    print(params)
 
     if not params:
         raise HTTPException(status_code=404, detail="Нет активных отчетов для владельца")
-
+    
     # Скачиваем файлы для каждого param
     saved_files = []
     for param, name in params:
         url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
+        print(url)
         headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
         response = requests.get(url, headers=headers, verify=False)
 

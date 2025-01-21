@@ -91,6 +91,9 @@ async function getFilesByOwnerId(id) {
 }
 
 async function reloadOwnerFilesById(path, id) {
+    document.getElementById("fileTable").innerHTML = '';
+    const spinner = document.getElementById("spinner");
+    spinner.style.display = "block";
     pressButton(id)
     const response = await fetch(`/files/upload/?owner_id=${id}`, {
         method: 'POST',

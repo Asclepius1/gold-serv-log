@@ -120,7 +120,7 @@ async function saveReportAccessChanges() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(accessChanges),
+            body: JSON.stringify({ access_changes: accessChanges }),
         });
 
         if (response.ok) {

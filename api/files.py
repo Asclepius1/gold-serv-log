@@ -165,7 +165,6 @@ async def get_file_path_by_owner_id(
             {
                 "id": item.id,
                 "name": item.filename,
-                "report": item.report_name or '',
                 "date": item.created_at,
             } for item in result
         ]

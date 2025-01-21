@@ -239,6 +239,7 @@ async def update_report_access(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(superuser_required),
 ):
+    print(access_changes)
     for change in access_changes:
         owner_id = change.owner_id
         has_access = change.has_access

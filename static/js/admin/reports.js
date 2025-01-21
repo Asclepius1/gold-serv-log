@@ -108,11 +108,13 @@ async function editReportAccess(reportId) {
 async function saveReportAccessChanges() {
     const reportId = document.getElementById("saveRepBtn").getAttribute("reportId");
     const checkboxes = document.querySelectorAll('[id^="access_"]');
-    const accessChanges = Array.from(checkboxes).map(checkbox => ({
-        owner_id: parseInt(checkbox.id.replace('access_', ''), 10),
-        has_access: checkbox.checked,  // Состояние галочки
-    }));
-
+    const accessChanges = {
+        access_changes: Array.from(checkboxes).map(checkbox => ({
+            owner_id: parseInt(checkbox.id.replace('access_', ''), 10),
+            has_access: checkbox.checked,
+        }))
+    };
+    console.log(accessChanges)
     try {
         const response = await fetch(`/files/reports/${reportId}/access`, {
             method: 'POST',
@@ -120,7 +122,7 @@ async function saveReportAccessChanges() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ access_changes: accessChanges }),
+            body: JSON.stringify(accessChanges),
         });
 
         if (response.ok) {

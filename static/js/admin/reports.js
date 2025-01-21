@@ -94,7 +94,7 @@ async function editReportAccess(reportId) {
                 <td>${owner.name}</td>
                 <td>
                     <input type="checkbox" class="form-check-input" id="access_${owner.id}" ${
-                        owner.has_access === false ? '' : 'checked'
+                        owner.has_access === false ? 'checked' : ''
                     }>
                 </td>
             `;
@@ -134,7 +134,4 @@ async function saveReportAccessChanges() {
         console.error(error);
         document.getElementById('modalBodyErrorText').hidden = false;
     }
-    const modalElement = document.getElementById('staticBackdropReportAccessEdit');
-    const modalInstance = bootstrap.Modal.getInstance(modalElement);
-    modalInstance.hide();
 }

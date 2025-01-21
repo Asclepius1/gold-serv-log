@@ -125,7 +125,7 @@ async function saveReportAccessChanges() {
         });
 
         if (response.ok) {
-            alert('Доступы успешно обновлены');
+            // alert('Доступы успешно обновлены');
             loadReprts()
         } else {
             throw new Error('Ошибка обновления доступов');

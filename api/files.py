@@ -240,7 +240,7 @@ async def update_report_access(
     user: User = Depends(superuser_required),
 ):
     for change in access_changes:
-        owner_id = change["owner_id"]
+        owner_id = change[owner_id]
         has_access = change["has_access"]
 
         # Проверяем существующую запись

@@ -1,21 +1,29 @@
 async function ButtonStatus(buttonId) {
-    const response = await fetch(`/files/button_status/${buttonId}`,{
+    const response = await fetch(`/files/button_status/${buttonId}`, {
         method: 'GET',
         credentials: 'include',
     });
     const data = await response.json();
 
-    document.getElementById(`attempts_${buttonId}`).innerText = data.attempts_left;
-    
-    if (data.attempts_left == 0){
-        document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
-        document.getElementById(`reloadBtn`).disabled = true;
+    const attemptsElement = document.getElementById(`attempts_${buttonId}`);
+    if (attemptsElement) {
+        attemptsElement.innerText = data.attempts_left;
     }
-    else if (data.last_press_time > 0) {
+
+    const timeRemainingElement = document.getElementById(`timeRemaining_${buttonId}`);
+    if (!timeRemainingElement) {
+        console.error(`Element with ID timeRemaining_${buttonId} not found`);
+        return;
+    }
+
+    if (data.attempts_left === 0) {
+        timeRemainingElement.innerText = "";
+        document.getElementById(`reloadBtn`).disabled = true;
+    } else if (data.last_press_time > 0) {
         let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
         startCountdown(buttonId, timeRemaining);
     } else {
-        document.getElementById(`timeRemaining_${buttonId}`).innerText = "";
+        timeRemainingElement.innerText = "";
         document.getElementById(`reloadBtn`).disabled = data.attempts_left === 0;
     }
 }

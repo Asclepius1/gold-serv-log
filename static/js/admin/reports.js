@@ -126,9 +126,6 @@ async function saveReportAccessChanges() {
 
         if (response.ok) {
             alert('Доступы успешно обновлены');
-            const modalElement = document.getElementById('staticBackdropReportAccessEdit');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement); // Получение экземпляра модального окна
-            modalInstance.hide();
             loadReprts()
         } else {
             throw new Error('Ошибка обновления доступов');
@@ -137,4 +134,7 @@ async function saveReportAccessChanges() {
         console.error(error);
         document.getElementById('modalBodyErrorText').hidden = false;
     }
+    const modalElement = document.getElementById('staticBackdropReportAccessEdit');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    modalInstance.hide();
 }

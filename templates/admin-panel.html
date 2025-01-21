@@ -23,6 +23,9 @@
                 <a class="nav-link" id="owner-tab" data-bs-toggle="pill" href="#owners" role="tab" aria-controls="owners" aria-selected="false" onclick="loadOwners()">Владельцы</a>
             </li>
             <li class="nav-item" role="presentation">
+                <a class="nav-link" id="report-tab" data-bs-toggle="pill" href="#reports" role="tab" aria-controls="reports" aria-selected="false" onclick="loadReprts()">Отчеты</a>
+            </li>
+            <li class="nav-item" role="presentation">
                 <a class="nav-link" id="settings-tab" data-bs-toggle="pill" href="#settings" role="tab" aria-controls="settings" aria-selected="false" onclick="loadLogs()">Логи</a>
             </li>
             <a class="nav-link" href="/internal">Главная</a>
@@ -68,10 +71,30 @@
                             <th scope="col">Владелец</th>
                             <th scope="col">Действие</th>
                             <th scope="col">Действие</th>
-
                         </tr>
                     </thead>
                     <tbody id="ownerTable">
+
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="report-tab">
+                <div class="d-flex justify-content-between">
+                    <h3>Управление отчетом</h3>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#staticBackdropAddReport">
+                        Добавить Отчет
+                    </button>
+                </div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Параметр</th>
+                            <th scope="col">Название</th>
+                            <th scope="col">Доступы</th>
+                            <th scope="col">Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTable">
 
                     </tbody>
                 </table>
@@ -302,74 +325,135 @@
         </div>
     </div>
 
+    <div class="modal fade" id="staticBackdropReportAccessEdit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelReportAccessEdit" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="staticBackdropLabelReportAccessEdit">Управление пользователем</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body ">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Владельцы</th>
+                            <th scope="col">Доступ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-modal-tbody">
+                        <tr>
+                            <td>ID</td>
+                            <td>Владельцы</td>
+                            <td>Доступ</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-danger" hidden id="modalBodyErrorText">
+                    Что-то пошло не так, попробуйте еще раз!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="saveReportAccessChanges()" id="saveRepBtn" reportId="">Сохранить</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
     
     <!-- Modal -->
     <div class="modal fade" id="staticBackdropAddUser" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelUserAdd" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h1 class="modal-title fs-5" id="staticBackdropLabelUserAdd">Создание пользователя</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" placeholder="Введите email" required>
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabelUserAdd">Создание пользователя</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="mb-3">
-                <label for="name" class="form-label">Имя</label>
-                <input type="text" class="form-control" id="name" placeholder="Введите имя" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Пароль</label>
-                <input type="text" class="form-control" id="password" placeholder="Введите пароль" required>
-            </div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Владелец</label>
-                <div class="dropdown">
-                    <button class="btn btn-warning dropdown-toggle w-25" type="button" id="dropdownAddOwner" owner-id="" data-bs-toggle="dropdown" aria-expanded="false">
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="dropdownAddOwner" id="dropdownMenuList">
-                    </ul>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Введите email" required>
                 </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Имя</label>
+                    <input type="text" class="form-control" id="name" placeholder="Введите имя" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Пароль</label>
+                    <input type="text" class="form-control" id="password" placeholder="Введите пароль" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Владелец</label>
+                    <div class="dropdown">
+                        <button class="btn btn-warning dropdown-toggle w-25" type="button" id="dropdownAddOwner" owner-id="" data-bs-toggle="dropdown" aria-expanded="false">
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownAddOwner" id="dropdownMenuList">
+                        </ul>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                </div>
+            </div> 
+            <div id="error-message" class="text-danger ps-3" style="display: none;">Ошибка регистраций</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="addNewUser()">Создать</button>
             </div>
-            <div class="d-flex justify-content-between align-items-center mb-3">
             </div>
-        </div> 
-        <div id="error-message" class="text-danger ps-3" style="display: none;">Ошибка регистраций</div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-            <button type="button" class="btn btn-primary" onclick="addNewUser()">Создать</button>
-        </div>
         </div>
     </div>
+    <div class="modal fade" id="staticBackdropAddReport" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelReportAdd" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabelReportAdd">Добавление отчета</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="param" class="form-label">Параметр</label>
+                        <input type="text" class="form-control" id="param" placeholder="Введите параметр" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Имя</label>
+                        <input type="text" class="form-control" id="reportName" placeholder="Введите имя" required>
+                    </div>
+                </div> 
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" onclick="addNewReport()">Создать</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="staticBackdropAddOwner" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelOwnerAdd" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h1 class="modal-title fs-5" id="staticBackdropLabelOwnerAdd">Создание владельца</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3">
-                <label for="name" class="form-label">Имя</label>
-                <input type="text" class="form-control" id="ownerNewName" placeholder="Введите имя" required>
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabelOwnerAdd">Создание владельца</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div> 
-        <div id="error-message" class="text-danger ps-3" style="display: none;">Ошибка регистраций</div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeBtnAddNewOwner">Закрыть</button>
-            <button type="button" class="btn btn-primary" onclick="addNewOwner()">Создать</button>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Имя</label>
+                    <input type="text" class="form-control" id="ownerNewName" placeholder="Введите имя" required>
+                </div>
+            </div> 
+            <div id="error-message" class="text-danger ps-3" style="display: none;">Ошибка регистраций</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeBtnAddNewOwner">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="addNewOwner()">Создать</button>
+            </div>
+            </div>
         </div>
-        </div>
-    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="static/js/admin/users.js"></script>
     <script src="static/js/admin/owners.js"></script>
+    <script src="static/js/admin/reports.js"></script>
     <script src="static/js/admin/logs.js"></script>
 </body>
 </html>

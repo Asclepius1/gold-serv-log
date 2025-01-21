@@ -1,6 +1,6 @@
 import requests
 import models.schemas as sch
-from models.models import owner
+from models.models import owner, owner_report_access
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from auth.db import User
@@ -56,6 +56,35 @@ async def read_owners(session: AsyncSession = Depends(get_async_session),  user:
     result = await session.execute(query)
     owners = result.mappings().all()
     return owners
+
+
+@router.get("/reports/{report_id}")
+async def get_owners_with_access(
+    report_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    # Получаем всех владельцев
+    owners_query = select(owner.c.id, owner.c.name)
+    owners_result = await session.execute(owners_query)
+    owners = owners_result.fetchall()
+
+    # Получаем владельцев с доступом к отчету
+    access_query = select(
+        owner_report_access.c.owner_id, owner_report_access.c.is_disabled
+    ).where(owner_report_access.c.report_id == report_id)
+    access_result = await session.execute(access_query)
+    access_data = {record.owner_id: record.is_disabled for record in access_result.fetchall()}
+
+    # Формируем список владельцев с указанием состояния доступа
+    return [
+        {
+            "id": owner.id,
+            "name": owner.name,
+            "has_access": access_data.get(owner.id, True),  # False, если доступ отключен
+        }
+        for owner in owners
+    ]
 
 @router.get("/{owner_id}", response_model=sch.OwnerRead)
 async def read_owner(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):

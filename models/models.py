@@ -52,3 +52,21 @@ files = Table(
     Column("file_path", String),
     Column("created_at", DateTime, default=datetime.now),   
 )
+
+reports = Table(
+    "reports",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("name", String),
+    Column("param", String),
+
+)
+
+owner_report_access = Table(
+    "owner_report_access",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='CASCADE')),  # ID пользователя
+    Column("report_id", Integer, ForeignKey(reports.c.id, ondelete='CASCADE')),  # ID ссылки
+    Column("is_disabled", Boolean, default=False),  # Флаг отключения ссылки для пользователя
+)

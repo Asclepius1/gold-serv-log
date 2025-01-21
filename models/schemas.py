@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 
 class OwnerBase(BaseModel):
@@ -12,3 +12,14 @@ class OwnerRead(OwnerBase):
 
 class OwnerCreate(OwnerBase):
     pass
+
+class ReportCreate(BaseModel):
+    name: str
+    param: str
+
+class AccessChange(BaseModel):
+    owner_id: int
+    has_access: bool
+
+class AccessChanges(BaseModel):
+    access_changes: List[AccessChange]

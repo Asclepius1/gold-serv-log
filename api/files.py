@@ -3,6 +3,7 @@ import time as time_
 import random
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import List
 
 from fastapi.responses import FileResponse
 import requests
@@ -12,9 +13,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.models import files, owner as owner_db
+from models.schemas import AccessChanges, ReportCreate
+from models.models import files, reports, owner_report_access, owner as owner_db
 from models.db import get_async_session, redis_client
-from auth.auth import current_user
+from auth.auth import current_user, superuser_required
 from auth.db import User
 
 router = APIRouter(prefix="/files", tags=["files"], )
@@ -22,53 +24,98 @@ router = APIRouter(prefix="/files", tags=["files"], )
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-def get_files_by_owner(owner: str) -> Path|None:
 
-    url = f"{GOLD_SERV_API_URL}/?depositor={owner}"
-    headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    response = requests.get(url, headers=headers, verify=False)
-
-    if response.status_code == 200:
-        owner_dir = UPLOAD_DIR / owner 
-        owner_dir.mkdir(parents=True, exist_ok=True)
-
-        now = datetime.now().strftime("%d%m%Y_%H%M%S")
-        rand = "".join([str(random.randint(0, 9)) for _ in range(8)]) 
-
-        file_path = owner_dir / f"{owner}_{now}_({rand}).xlsx"
-
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-
-        print(f"Файл сохранен как {file_path}.xlsx")
-        return file_path
-    else:
-        print(f"Ошибка: {response.status_code}")
-
-
-@router.post("/upload/")
-async def upload_file(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
+@router.get("/reports")
+async def get_reports(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+    # Выполняем запрос для получения всех отчетов
+    query = select(reports)
+    result = await session.execute(query)
+    reports_data = result.fetchall()
+    if reports_data:
+        # Возвращаем список отчетов в формате JSON
+        return [
+            {
+                "id": item.id,
+                "name": item.name,
+                "param": item.param,
+            }
+            for item in reports_data
+        ]
     
-    owner_result = await session.execute(owner_db.select().where(owner_db.c.id == owner_id))
-    result = owner_result.fetchone()
+    # Если нет отчетов, возвращаем пустой список
+    return [
+        {
+            "id": None,
+            "name": '-',
+            "param": '-',
+        }
+    ]
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Владелец не найден")
-    
-    file_path = get_files_by_owner(result.name)
-
-    if not file_path:
-        raise HTTPException(status_code=404, detail="Файл не найден")
-
-    query = files.insert().values(
-        owner_id=owner_id,
-        filename=file_path.name,
-        file_path=str(file_path)
-    )
+@router.post("/reports")
+async def add_report(report: ReportCreate, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+    query = reports.insert().values(name=report.name, param=report.param)
     await session.execute(query)
     await session.commit()
+    return {"message": "Успешно добавлено"}
 
-    return {"message": f"Файл {file_path.name} добавлен в БД"}
+@router.post("/upload/")
+async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
+    # Проверяем наличие владельца
+    owner_result = await session.execute(owner_db.select().where(owner_db.c.id == owner_id))
+    owner = owner_result.fetchone()
+
+    if not owner:
+        raise HTTPException(status_code=404, detail="Владелец не найден")
+
+    # Получаем список активных параметров (param) для владельца
+    query = (
+        select(reports.c.param, reports.c.name)
+        .select_from(owner_report_access.join(reports, owner_report_access.c.report_id == reports.c.id))
+        .where(owner_report_access.c.owner_id == owner_id, owner_report_access.c.is_disabled == False)
+    )
+    result = await session.execute(query)
+    params = result.scalars().all()
+
+    if not params:
+        raise HTTPException(status_code=404, detail="Нет активных отчетов для владельца")
+
+    # Скачиваем файлы для каждого param
+    saved_files = []
+    for param, name in params:
+        url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
+        headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
+        response = requests.get(url, headers=headers, verify=False)
+
+        if response.status_code == 200:
+            owner_dir = UPLOAD_DIR / owner.name
+            owner_dir.mkdir(parents=True, exist_ok=True)
+
+            now = datetime.now().strftime("%d%m%Y_%H%M%S")
+            rand = "".join([str(random.randint(0, 9)) for _ in range(8)])
+            file_path = owner_dir / f"{owner.name}_{name}_{now}_({rand}).xlsx"
+
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+
+            print(f"Файл сохранен как {file_path}")
+            saved_files.append(file_path)
+
+            # Добавляем информацию о файле в БД
+            query = files.insert().values(
+                owner_id=owner_id,
+                filename=file_path.name,
+                file_path=str(file_path)
+            )
+            await session.execute(query)
+        else:
+            print(f"Ошибка при запросе {url}: {response.status_code}")
+
+    await session.commit()
+
+    if not saved_files:
+        raise HTTPException(status_code=404, detail="Файлы не были загружены")
+
+    return {"message": "Файлы успешно добавлены", "files": [str(file) for file in saved_files]}
 
 
 
@@ -105,19 +152,38 @@ async def delete_old_files():
         await session.commit()
 
 @router.get("/{owner_id}")
-async def get_file_path_by_owner_id(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
-    result = await session.execute(files.select().where(files.c.owner_id == owner_id).order_by(files.c.created_at.desc()))
-    files_data = result.scalars()
+async def get_file_path_by_owner_id(
+    owner_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(current_user),
+):
+    # Присоединяем таблицу reports к таблице files
+    query = (
+        select(
+            files.c.id,
+            files.c.filename,
+            reports.c.name.label("report_name"),
+            files.c.created_at,
+        )
+        .join(reports, reports.c.id == files.c.report_id, isouter=True)  # Присоединение таблицы reports
+        .where(files.c.owner_id == owner_id)
+        .order_by(files.c.created_at.desc())
+    )
+    result = await session.execute(query)
+    files_data = result.fetchall()
+
     if files_data:
         return [
             {
                 "id": item.id,
                 "name": item.filename,
+                "report": item.report_name or '',  # Название отчета или пустая строка
                 "date": item.created_at,
-                "type": "file"
+                "type": "file",
             }
-            for item in result
+            for item in files_data
         ]
+    
     raise HTTPException(status_code=404, detail="Файл не найден")
 
 
@@ -169,3 +235,48 @@ def press_button(button_id: str, user: User = Depends(current_user)):
     redis_client.hincrby(button_key, "count", 1)
 
     return {"message": f"Кнопка {button_id} нажата!"}
+
+
+@router.delete("/reports/{report_id}")
+async def delete_link(report_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+    query = reports.delete().where(reports.c.id == report_id)
+    await session.execute(query)
+    await session.commit()
+    return {"message": "Отчет успешно удален"}
+
+@router.post("/reports/{report_id}/access")
+async def update_report_access(
+    report_id: int,
+    access_changes: AccessChanges,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    for change in access_changes:
+        owner_id = change["owner_id"]
+        has_access = change["has_access"]
+
+        # Проверяем существующую запись
+        query = owner_report_access.select().where(
+            owner_report_access.c.report_id == report_id,
+            owner_report_access.c.owner_id == owner_id,
+        )
+        result = await session.execute(query)
+        record = result.fetchone()
+
+        if record:
+            # Обновляем запись
+            update_query = owner_report_access.update().where(
+                owner_report_access.c.id == record.id
+            ).values(is_disabled=not has_access)
+            await session.execute(update_query)
+        else:
+            # Добавляем новую запись
+            insert_query = owner_report_access.insert().values(
+                owner_id=owner_id,
+                report_id=report_id,
+                is_disabled=not has_access,
+            )
+            await session.execute(insert_query)
+
+    await session.commit()
+    return {"message": "Доступ успешно обновлен"}

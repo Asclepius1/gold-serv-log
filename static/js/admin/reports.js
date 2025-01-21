@@ -39,6 +39,8 @@ async function addNewReport(){
     const name = document.getElementById('reportName').value;
     if (name && param){
         try {
+            const sanitizedFileName = name.replace(/\s+/g, '_').replace(/[^\w\-._]/g, '');
+
             const response = await fetch('/files/reports', {
                 method: 'POST',
                 credentials: 'include',
@@ -46,7 +48,7 @@ async function addNewReport(){
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    name: name,
+                    name: sanitizedFileName,
                     param: param,
                 })
             });

@@ -166,6 +166,7 @@ async def get_file_path_by_owner_id(
                 "id": item.id,
                 "name": item.filename,
                 "date": item.created_at,
+                "type": "file",
             } for item in result
         ]
     raise HTTPException(status_code=404, detail="Файл не найден")

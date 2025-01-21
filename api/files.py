@@ -74,7 +74,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
         .where(owner_report_access.c.owner_id == owner_id, owner_report_access.c.is_disabled == False)
     )
     result = await session.execute(query)
-    params = result.scalars().all()
+    params = result.fetchall()
     
     print(params)
 

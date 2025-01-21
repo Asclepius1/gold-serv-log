@@ -52,9 +52,39 @@ async def get_reports(session: AsyncSession = Depends(get_async_session), user: 
     ]
 
 @router.post("/reports")
-async def add_report(report: ReportCreate, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
-    query = reports.insert().values(name=report.name, param=report.param)
-    await session.execute(query)
+async def add_report(
+    report: ReportCreate,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    # Добавляем отчет
+    query = reports.insert().values(name=report.name, param=report.param).returning(reports.c.id)
+    result = await session.execute(query)
+    new_report_id = result.scalar()  # Извлекаем ID нового отчета
+    
+    if not new_report_id:
+        raise HTTPException(status_code=500, detail="Ошибка создания отчета")
+
+    # Получаем всех владельцев
+    owners_query = select(owner_db.c.id)  # Таблица владельцев (owner_db)
+    owners_result = await session.execute(owners_query)
+    owners = [row.id for row in owners_result.fetchall()]  # Преобразуем результат в список ID владельцев
+
+    if not owners:
+        raise HTTPException(status_code=404, detail="Владельцы не найдены")
+
+    # Добавляем доступ по умолчанию (например, доступ открыт)
+    access_records = [
+        {
+            "owner_id": owner_id,
+            "report_id": new_report_id,
+            "is_disabled": False,  # Доступ включен
+        }
+        for owner_id in owners
+    ]
+    if access_records:
+        await session.execute(owner_report_access.insert().values(access_records))
+
     await session.commit()
     return {"message": "Успешно добавлено"}
 

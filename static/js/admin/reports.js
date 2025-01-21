@@ -114,7 +114,6 @@ async function saveReportAccessChanges() {
             has_access: checkbox.checked,
         }))
     };
-    console.log(accessChanges)
     try {
         const response = await fetch(`/files/reports/${reportId}/access`, {
             method: 'POST',
@@ -127,7 +126,10 @@ async function saveReportAccessChanges() {
 
         if (response.ok) {
             alert('Доступы успешно обновлены');
-            window.location.reload();
+            const modalElement = document.getElementById('staticBackdropReportAccessEdit');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement); // Получение экземпляра модального окна
+            modalInstance.hide();
+            loadReprts()
         } else {
             throw new Error('Ошибка обновления доступов');
         }

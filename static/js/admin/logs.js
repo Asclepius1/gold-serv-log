@@ -317,9 +317,8 @@ async function deleteSelectedErrors() {
         });
 
         if (response.ok) {
-            alert('Выбранные ошибки успешно удалены!');
+            console.log('Выбранные ошибки успешно удалены!');
             selectedErrors = []; // Очистить массив
-            showDeleteErrorModal(); // Перезагрузить список
         } else {
             const error = await response.json();
             alert(`Ошибка удаления: ${error.detail}`);

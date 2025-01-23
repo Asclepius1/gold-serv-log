@@ -113,7 +113,7 @@ async def apply_errors_to_logs(
     updates = []
     for log in logs_data:
         for rule in error_rules:
-            if rule.message in log.message:
+            if rule.error_message in log.message:
                 updates.append({
                     "id": log.id,
                     "error_type": rule.error_type,

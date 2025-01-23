@@ -156,7 +156,7 @@ async def _add_logs_wrapper():
 async def get_error_mapping(session: AsyncSession):
     query = select(log_errors.c.error_message, log_errors.c.color, log_errors.c.error_type)
     result = await session.execute(query)
-    return {row.message: (row.color, row.error_type) for row in result.fetchall()}
+    return {row.error_message: (row.color, row.error_type) for row in result.fetchall()}
 
 async def check_error(message: str, session: AsyncSession):
     # Загружаем ошибки и их параметры из базы данных
@@ -203,7 +203,7 @@ async def add_or_update_error(
     await session.execute(query)
     await session.commit()
 
-    return {"message": f"Error '{error_data.message}' has been added/updated with color '{error_data.color}' and type '{error_data.error_type}'."}
+    return {"message": f"Error '{error_data.error_message}' has been added/updated with color '{error_data.color}' and type '{error_data.error_type}'."}
 
 @router.get("/error-mapping")
 async def get_error_mapping(session: AsyncSession = Depends(get_async_session)):

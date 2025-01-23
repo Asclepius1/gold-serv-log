@@ -272,9 +272,9 @@ async function showDeleteErrorModal() {
                 const listItem = document.createElement('li');
                 listItem.className = 'list-group-item d-flex align-items-center justify-content-between error-list-group-item';
                 listItem.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <span class="error-text flex-grow-1">${error.message}</span>
-                        <input type="checkbox" value="${error.id}" onchange="toggleSelectedError(${error.id}, this)" class="form-check-input error-form-check-input ms-3">
+                    <span class="error-text">${error.message}</span>
+                    <div class="form-check error-form-check ms-3">
+                        <input type="checkbox" value="${error.id}" onchange="toggleSelectedError(${error.id}, this)" class="form-check-input error-form-check-input">
                     </div>
                 `;
                 errorList.appendChild(listItem);

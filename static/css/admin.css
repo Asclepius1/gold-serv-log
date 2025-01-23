@@ -67,6 +67,8 @@ align-items: center;
     white-space: nowrap; /* Запретить перенос текста */
     overflow: hidden;
     text-overflow: ellipsis; /* Добавить многоточие для длинного текста */
+    margin-right: 10px; /* Отступ от чекбокса */
+    flex-grow: 1; /* Занимает оставшееся пространство */
 }
 
 .error-list-group-item {
@@ -74,6 +76,15 @@ align-items: center;
     align-items: center;
 }
 
+.form-check {
+    display: flex;
+    justify-content: center; /* Центровка чекбокса по горизонтали */
+    align-items: center; /* Центровка чекбокса по вертикали */
+}
+
+
 .error-form-check-input{
-    margin-left: auto; /* Чекбокс уходит в конец строки */
+    width: 1.25rem; /* Стандартный размер чекбокса */
+    height: 1.25rem;
+    cursor: pointer;
 }

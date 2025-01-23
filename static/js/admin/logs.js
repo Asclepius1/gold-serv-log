@@ -313,7 +313,7 @@ async function deleteSelectedErrors() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ error_ids: selectedErrors }),
+            body: JSON.stringify(selectedErrors),
         });
 
         if (response.ok) {

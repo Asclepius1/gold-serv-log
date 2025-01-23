@@ -209,7 +209,7 @@ async function addError() {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                message: errorMessage,
+                error_message: errorMessage,
                 color: errorColor,
                 error_type: errorType,
             }),

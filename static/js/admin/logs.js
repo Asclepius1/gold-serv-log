@@ -189,3 +189,142 @@ function resetFilters() {
     color = null;
     saveFilters();
 }
+
+// Добавление новой ошибки
+async function addError() {
+    const errorMessage = document.getElementById("errorMessage").value;
+    const errorColor = document.getElementById("errorColor").value;
+    const errorType = document.getElementById("errorType").value;
+
+    if (!errorMessage || !errorColor || !errorType) {
+        alert("Пожалуйста, заполните все поля.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/logs/error", {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                message: errorMessage,
+                color: errorColor,
+                error_type: errorType,
+            }),
+        });
+
+        if (response.ok) {
+            console.log("Ошибка успешно добавлена!");
+        } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.detail}`);
+        }
+    } catch (err) {
+        console.error("Ошибка при добавлении ошибки:", err);
+        alert("Произошла ошибка при добавлении ошибки.");
+    }
+}
+
+async function applyErrorsToAllLogs() {
+    if (!confirm("Вы уверены, что хотите применить ошибки ко всем логам? Это действие изменит существующие записи.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/logs/apply-errors-to-logs", {
+            method: "POST",
+        });
+
+        if (response.ok) {
+            alert("Ошибки успешно применены ко всем логам!");
+            loadLogs();
+        } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.detail}`);
+        }
+    } catch (err) {
+        console.error("Ошибка при применении ошибок ко всем логам:", err);
+        alert("Произошла ошибка при применении ошибок.");
+    }
+}
+
+
+let selectedErrors = []; // Массив для хранения выбранных ошибок
+
+async function showDeleteErrorModal() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteErrorModal'));
+    const errorList = document.getElementById('errorList');
+    errorList.innerHTML = ''; // Очистить предыдущий список
+
+    try {
+        // Получить список ошибок с сервера
+        const response = await fetch('/logs/error-mapping', {
+            credentials: 'include',
+        });
+        const errors = await response.json();
+
+        if (response.ok) {
+            // Добавить ошибки в список
+            errors.forEach(error => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+                listItem.innerHTML = `
+                    <span>${error.message}</span>
+                    <input type="checkbox" value="${error.id}" onchange="toggleSelectedError(${error.id}, this)">
+                `;
+
+                errorList.appendChild(listItem);
+            });
+
+            modal.show();
+        } else {
+            alert(`Ошибка загрузки списка ошибок: ${errors.detail}`);
+        }
+    } catch (err) {
+        console.error('Ошибка при загрузке списка ошибок:', err);
+        alert('Произошла ошибка при загрузке списка ошибок.');
+    }
+}
+
+// Функция для добавления/удаления ошибок в/из массива
+function toggleSelectedError(errorId, checkbox) {
+    if (checkbox.checked) {
+        selectedErrors.push(errorId); // Добавить ошибку в массив
+    } else {
+        selectedErrors = selectedErrors.filter(id => id !== errorId); // Удалить ошибку из массива
+    }
+    console.log('Выбранные ошибки:', selectedErrors); // Для отладки
+}
+
+async function deleteSelectedErrors() {
+    if (selectedErrors.length === 0) {
+        alert('Выберите хотя бы одну ошибку для удаления.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/logs/error/delete', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ error_ids: selectedErrors }),
+        });
+
+        if (response.ok) {
+            alert('Выбранные ошибки успешно удалены!');
+            selectedErrors = []; // Очистить массив
+            showDeleteErrorModal(); // Перезагрузить список
+        } else {
+            const error = await response.json();
+            alert(`Ошибка удаления: ${error.detail}`);
+        }
+    } catch (err) {
+        console.error('Ошибка при удалении ошибок:', err);
+        alert('Произошла ошибка при удалении ошибок.');
+    }
+}

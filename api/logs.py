@@ -2,7 +2,7 @@ from datetime import datetime, time
 
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from auth.db import User
 
@@ -10,10 +10,11 @@ from sqlalchemy.future import select
 from sqlalchemy import Text, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.models import logs, log_filters
+from models.models import logs, log_filters, log_errors
 from models.db import get_async_session, get_autorefresh_state, set_autorefresh_state
 from auth.auth import superuser_required
 from schedule import update_scheduler
+from models.schemas import ErrorSchema
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -91,6 +92,49 @@ async def get_logs(
         "page_size": page_size,
     }
 
+@router.post("/apply-errors-to-logs")
+async def apply_errors_to_logs(
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    # Получение всех правил из таблицы ошибок
+    error_rules_query = select(log_errors)
+    result = await session.execute(error_rules_query)
+    error_rules = result.fetchall()
+
+    if not error_rules:
+        raise HTTPException(status_code=404, detail="Правила ошибок отсутствуют.")
+
+    # Применение правил ко всем логам
+    logs_query = select(logs)
+    logs_result = await session.execute(logs_query)
+    logs_data = logs_result.fetchall()
+
+    updates = []
+    for log in logs_data:
+        for rule in error_rules:
+            if rule.message in log.message:
+                updates.append({
+                    "id": log.id,
+                    "error_type": rule.error_type,
+                    "color": rule.color,
+                })
+                break  # Применяем только первое совпадение
+
+    # Обновление логов
+    for update in updates:
+        await session.execute(
+            update(logs)
+            .where(logs.c.id == update["id"])
+            .values(
+                error_type=update["error_type"],
+                color=update["color"]
+            )
+        )
+
+    await session.commit()
+    return {"message": f"Ошибки применены к {len(updates)} логам."}
+
 
 def get_current_data(data: list[dict], last_log: dict) -> list[dict]:
     correct_data_to_import = []
@@ -109,11 +153,14 @@ async def _add_logs_wrapper():
         await add_logs(session=session)
 
 
-def check_error(message: str):
-    error_mapping = {
-        "Fields not replaced": ("yellow", "Fields not replaced"),
-        "Код 53236_101 уже присутствует": ("red", "Код уже присутствует"),
-    }
+async def get_error_mapping(session: AsyncSession):
+    query = select(log_errors.c.error_message, log_errors.c.color, log_errors.c.error_type)
+    result = await session.execute(query)
+    return {row.message: (row.color, row.error_type) for row in result.fetchall()}
+
+async def check_error(message: str, session: AsyncSession):
+    # Загружаем ошибки и их параметры из базы данных
+    error_mapping = await get_error_mapping(session)
 
     for substring, (color, error_type) in error_mapping.items():
         if substring in message:
@@ -121,24 +168,87 @@ def check_error(message: str):
 
     return "green", "-"
 
-@router.post("")
-async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
-    
-    latest_current_log = logs.select().order_by(logs.c['datetime'].desc()).limit(1)
+
+@router.post("/error")
+async def add_or_update_error(
+    error_data: ErrorSchema,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    valid_colors = ["yellow", "red", "green"]
+    if error_data.color not in valid_colors:
+        raise HTTPException(status_code=400, detail="Invalid color")
+
+    # Проверка существования ошибки
+    existing_error = await session.execute(
+        select(log_errors).where(log_errors.c.error_message == error_data.error_message)
+    )
+    existing_error = existing_error.fetchone()
+
+    if existing_error:
+        # Обновляем существующую ошибку
+        query = (
+            log_errors.update()
+            .where(log_errors.c.error_message == error_data.error_message)
+            .values(color=error_data.color, error_type=error_data.error_type)
+        )
+    else:
+        # Добавляем новую ошибку
+        query = log_errors.insert().values(
+            error_message=error_data.message,
+            color=error_data.color,
+            error_type=error_data.error_type,
+        )
+
+    await session.execute(query)
+    await session.commit()
+
+    return {"message": f"Error '{error_data.message}' has been added/updated with color '{error_data.color}' and type '{error_data.error_type}'."}
+
+@router.get("/error-mapping")
+async def get_error_mapping(session: AsyncSession = Depends(get_async_session)):
+    query = select(log_errors)
+    result = await session.execute(query)
+    errors = result.fetchall()
+
+    return [{"id": error.id, "message": error.error_message, "color": error.color, "error_type": error.error_type} for error in errors]
+
+@router.post("/error/delete")
+async def delete_errors(
+    error_ids: list[int],  # Получаем список ID ошибок
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    if not error_ids:
+        raise HTTPException(status_code=400, detail="Список ID ошибок пуст.")
+
+    # Удаление ошибок из базы данных
+    await session.execute(
+        log_errors.delete().where(log_errors.c.id.in_(error_ids))
+    )
+    await session.commit()
+
+    return {"message": f"Удалено {len(error_ids)} ошибок."}
+
+@router.post("/add_logs")
+async def add_logs(datetime_: str | None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
+    latest_current_log = select(logs).order_by(logs.c['datetime'].desc()).limit(1)
     result = await session.execute(latest_current_log)
     latest_current_log = result.fetchone()
+
     url = f'{GOLD_SERV_API_URL}'
     if datetime_:
-        url+=f'/?date={datetime_}'
+        url += f'/?date={datetime_}'
     else:
-        url+=f"/?date={datetime.now().strftime("%d%m%Y")}"
+        url += f"/?date={datetime.now().strftime('%d%m%Y')}"
 
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    respone = requests.get(url, headers=headers, verify=False)
-    
-    if respone.status_code == 200:
-        data: list[dict] = respone.json()
+    response = requests.get(url, headers=headers, verify=False)
+
+    if response.status_code == 200:
+        data: list[dict] = response.json()
         correct_data = get_current_data(data, {'datetime': latest_current_log.datetime, 'file_name': latest_current_log.file_name})
+        
         if correct_data:
             for log in correct_data:
                 try:
@@ -146,7 +256,7 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
                 except ValueError:
                     return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
                 
-                color, error_type = check_error(log.get("Message"))
+                color, error_type = await check_error(log.get("Message"), session)
 
                 query = logs.insert().values(
                     datetime=log_datetime,
@@ -159,9 +269,9 @@ async def add_logs(datetime_: str|None = None, session: AsyncSession = Depends(g
                 await session.execute(query)
             await session.commit()
             return {"message": f"Логи импортированы корректно, кол-во строк: {len(correct_data)}"}
-        return {"message": f'Нет данных для имопрта'}
+        return {"message": 'Нет данных для импорта'}
     else:
-        print(respone.status_code, respone.text)
+        print(response.status_code, response.text)
 
 
 

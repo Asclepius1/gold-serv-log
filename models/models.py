@@ -35,6 +35,16 @@ logs = Table(
     Column("color", String, default='green', nullable=True),
 )
 
+log_errors = Table(
+    'log_errors',
+    metadata,
+    Column('id', Integer, primary_key=True, index=True),
+    Column('error_message', String),
+    Column('color', String, nullable=True),
+    Column("error_type", String, default='-', nullable=True),
+
+)
+
 log_filters = Table(
     "log_filters",
     metadata,

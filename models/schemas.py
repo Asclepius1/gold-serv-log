@@ -23,3 +23,8 @@ class AccessChange(BaseModel):
 
 class AccessChanges(BaseModel):
     access_changes: List[AccessChange]
+
+class ErrorSchema(BaseModel):
+    error_message: str
+    color: str
+    error_type: str

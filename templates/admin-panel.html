@@ -111,6 +111,13 @@
                         <button type="button" class="btn btn-info" onclick="resetFilters()">
                             Сбросить фильтр
                         </button>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#errorManagementModal">
+                            Управление ошибками
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="applyErrorsToAllLogs()">
+                            Применить ко всем логам
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="showDeleteErrorModal()">Удалить ошибку</button>
                     </div>
                 </div>
                 <table class="table table-striped table-light ">
@@ -256,6 +263,58 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteErrorModal" class="modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable" style="max-height: 400px; overflow-y: auto;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Удаление ошибки</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="errorList" class="list-group">
+                        <!-- Список ошибок будет добавлен через JavaScript -->
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteSelectedError()">Удалить выбранную ошибку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="errorManagementModal" tabindex="-1" aria-labelledby="errorManagementModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="errorManagementModalLabel">Управление ошибками</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="errorForm">
+                        <div class="mb-3">
+                            <label for="errorMessage" class="form-label">Сообщение ошибки</label>
+                            <input type="text" class="form-control" id="errorMessage" placeholder="Введите текст ошибки">
+                        </div>
+                        <div class="mb-3">
+                            <label for="errorColor" class="form-label">Цвет ошибки</label>
+                            <select class="form-select" id="errorColor">
+                                <option value="red">Красный</option>
+                                <option value="yellow">Желтый</option>
+                                <option value="green">Зеленый</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="errorType" class="form-label">Тип ошибки</label>
+                            <input type="text" class="form-control" id="errorType" placeholder="Введите тип ошибки">
+                        </div>
+                    </form>
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" onclick="addError()">Добавить ошибку</button>
+                </div>
             </div>
         </div>
     </div>

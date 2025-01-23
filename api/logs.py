@@ -124,7 +124,7 @@ async def apply_errors_to_logs(
     # Обновление логов
     for update in updates:
         await session.execute(
-            update(logs)
+            logs.update()
             .where(logs.c.id == update["id"])
             .values(
                 error_type=update["error_type"],

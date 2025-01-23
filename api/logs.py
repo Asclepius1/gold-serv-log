@@ -195,7 +195,7 @@ async def add_or_update_error(
     else:
         # Добавляем новую ошибку
         query = log_errors.insert().values(
-            error_message=error_data.message,
+            error_message=error_data.error_message,
             color=error_data.color,
             error_type=error_data.error_type,
         )

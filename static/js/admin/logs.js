@@ -217,6 +217,7 @@ async function addError() {
 
         if (response.ok) {
             console.log("Ошибка успешно добавлена!");
+            applyErrorsToAllLogs()
         } else {
             const error = await response.json();
             alert(`Ошибка: ${error.detail}`);
@@ -269,13 +270,13 @@ async function showDeleteErrorModal() {
             // Добавить ошибки в список
             errors.forEach(error => {
                 const listItem = document.createElement('li');
-                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-
+                listItem.className = 'list-group-item d-flex align-items-center justify-content-between error-list-group-item';
                 listItem.innerHTML = `
-                    <span>${error.message}</span>
-                    <input type="checkbox" value="${error.id}" onchange="toggleSelectedError(${error.id}, this)">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <span class="error-text flex-grow-1">${error.message}</span>
+                        <input type="checkbox" value="${error.id}" onchange="toggleSelectedError(${error.id}, this)" class="form-check-input error-form-check-input ms-3">
+                    </div>
                 `;
-
                 errorList.appendChild(listItem);
             });
 

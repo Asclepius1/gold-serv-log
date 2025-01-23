@@ -62,3 +62,18 @@ align-items: center;
 .dddd {
     margin: 5px 0;
 }
+
+.error-text {
+    white-space: nowrap; /* Запретить перенос текста */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Добавить многоточие для длинного текста */
+}
+
+.error-list-group-item {
+    display: flex;
+    align-items: center;
+}
+
+.error-form-check-input{
+    margin-left: auto; /* Чекбокс уходит в конец строки */
+}

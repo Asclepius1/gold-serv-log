@@ -153,14 +153,14 @@ async def _add_logs_wrapper():
         await add_logs(session=session)
 
 
-async def get_error_mapping(session: AsyncSession):
+async def get_error_mapping_check_error(session: AsyncSession):
     query = select(log_errors.c.error_message, log_errors.c.color, log_errors.c.error_type)
     result = await session.execute(query)
     return {row.error_message: (row.color, row.error_type) for row in result.fetchall()}
 
 async def check_error(message: str, session: AsyncSession):
     # Загружаем ошибки и их параметры из базы данных
-    error_mapping = await get_error_mapping(session)
+    error_mapping = await get_error_mapping_check_error(session)
 
     for substring, (color, error_type) in error_mapping.items():
         if substring in message:

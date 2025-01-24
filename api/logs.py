@@ -242,6 +242,8 @@ def test_router(datetime_: str):
     try:
         response = requests.get(url, headers=headers, verify=False)
         response.raise_for_status()  # Бросает исключение для статусов 4xx и 5xx
+        print(response.json(), response.status_code)
+        return response.json()
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
     

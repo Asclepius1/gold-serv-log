@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from fastapi.responses import FileResponse
+import httpx
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 from fastapi import APIRouter, Depends, HTTPException
@@ -113,35 +114,40 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
     
     # Скачиваем файлы для каждого param
     saved_files = []
-    for param, name in params:
-        url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
-        print(url)
-        headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-        response = requests.get(url, headers=headers, verify=False)
+    async with httpx.AsyncClient(verify=False) as client:
+        for param, name in params:
+            url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
+            print(url)
+            headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
 
-        if response.status_code == 200:
-            owner_dir = UPLOAD_DIR / owner.name
-            owner_dir.mkdir(parents=True, exist_ok=True)
+                owner_dir = UPLOAD_DIR / owner.name
+                owner_dir.mkdir(parents=True, exist_ok=True)
 
-            now = datetime.now().strftime("%d%m%Y_%H%M%S")
-            rand = "".join([str(random.randint(0, 9)) for _ in range(8)])
-            file_path = owner_dir / f"{owner.name}_{name}_{now}_({rand}).xlsx"
+                now = datetime.now().strftime("%d%m%Y_%H%M%S")
+                rand = "".join([str(random.randint(0, 9)) for _ in range(8)])
+                file_path = owner_dir / f"{owner.name}_{name}_{now}_({rand}).xlsx"
 
-            with open(file_path, "wb") as f:
-                f.write(response.content)
+                # Сохраняем файл
+                with open(file_path, "wb") as f:
+                    f.write(response.content)
 
-            print(f"Файл сохранен как {file_path}")
-            saved_files.append(file_path)
+                print(f"Файл сохранен как {file_path}")
+                saved_files.append(file_path)
 
-            # Добавляем информацию о файле в БД
-            query = files.insert().values(
-                owner_id=owner_id,
-                filename=file_path.name,
-                file_path=str(file_path)
-            )
-            await session.execute(query)
-        else:
-            print(f"Ошибка при запросе {url}: {response.status_code}")
+                # Добавляем информацию о файле в БД
+                query = files.insert().values(
+                    owner_id=owner_id,
+                    filename=file_path.name,
+                    file_path=str(file_path)
+                )
+                await session.execute(query)
+            except httpx.HTTPStatusError as exc:
+                print(f"Ошибка при запросе {url}: {exc.response.status_code}, {exc.response.text}")
+            except httpx.RequestError as exc:
+                print(f"Ошибка сети при запросе {url}: {str(exc)}")
 
     await session.commit()
 

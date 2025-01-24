@@ -1,3 +1,4 @@
+import httpx
 import requests
 import models.schemas as sch
 from models.models import owner, owner_report_access
@@ -14,29 +15,37 @@ from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 router = APIRouter(prefix="/owners", tags=["owners"])
 
 @router.get("/update-all/")
-async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required) ):
+async def check_all_owner_and_add(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
     url = f"{GOLD_SERV_API_URL}/?depositor=DEPLIST"
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    response = requests.get(url, headers=headers, verify=False)
 
-    if response.status_code == 200:
-        if data := response.json():
-            owner_list = data['DeposCode']
-            # Проверяем, какие владельцы уже есть в базе данных
-            existing_owners_query = select(owner).filter(owner.c.name.in_(owner_list))
-            result = await session.execute(existing_owners_query)
-            existing_owners = {owner.name for owner in result.fetchall()}
-                
-            # Фильтруем новый список владельцев, чтобы не добавлять тех, кто уже есть в базе
-            new_owners = [owner for owner in owner_list if owner not in existing_owners]
+    async with httpx.AsyncClient(verify=False) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
 
-            if new_owners:
-                # Добавляем новых владельцев в базу данных
-                new_owners_data = [{'name': owner} for owner in new_owners]
-                await session.execute(owner.insert(), new_owners_data)
-                await session.commit()
-                return {"message": f"Владелецы были добавлены в кол-ве: {len(new_owners)}"}
-            return {'message': 'Нету новых данных для вставки'}
+            if data := response.json():
+                owner_list = data.get('DeposCode', [])
+                # Проверяем, какие владельцы уже есть в базе данных
+                existing_owners_query = select(owner).filter(owner.c.name.in_(owner_list))
+                result = await session.execute(existing_owners_query)
+                existing_owners = {row.name for row in result.fetchall()}
+
+                # Фильтруем новых владельцев, чтобы не добавлять тех, кто уже есть в базе
+                new_owners = [owner for owner in owner_list if owner not in existing_owners]
+
+                if new_owners:
+                    # Добавляем новых владельцев в базу данных
+                    new_owners_data = [{'name': owner} for owner in new_owners]
+                    await session.execute(owner.insert(), new_owners_data)
+                    await session.commit()
+                    return {"message": f"Владельцы были добавлены в количестве: {len(new_owners)}"}
+                return {'message': 'Нет новых данных для вставки'}
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail=f"HTTP Error: {exc.response.text}")
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=500, detail=f"Request failed: {str(exc)}")
+
     raise HTTPException(status_code=404, detail="Не получилось добавить владельцев")
 
 

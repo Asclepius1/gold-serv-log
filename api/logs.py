@@ -240,9 +240,11 @@ async def test_router(datetime_: str):
         url += f"/?date={datetime.now().strftime('%d%m%Y')}"
 
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    async with httpx.AsyncClient() as client:
+
+    # Создаем клиент с отключенной проверкой SSL
+    async with httpx.AsyncClient(verify=False) as client:
         try:
-            response = await client.get(url, headers=headers, verify=False)
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as exc:

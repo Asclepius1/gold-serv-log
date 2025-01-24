@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import httpx
 import requests
@@ -230,6 +230,62 @@ async def delete_errors(
     await session.commit()
 
     return {"message": f"Удалено {len(error_ids)} ошибок."}
+
+@router.post("/add_old_logs")
+async def add_old_logs(
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    date_range = ['17012024', '18012024', '19012024', '20012024', '21012024', '22012024']
+    for date_str in date_range:
+        url = f"{GOLD_SERV_API_URL}/?date={date_str}"
+
+        headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
+        async with httpx.AsyncClient(verify=False) as client:
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise HTTPException(
+                    status_code=exc.response.status_code,
+                    detail=f"Ошибка HTTP: {exc.response.status_code}, текст ответа: {exc.response.text}",
+                )
+            except httpx.RequestError as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Не удалось подключиться к серверу: {exc}",
+                )
+
+        # Обрабатываем данные
+        data: list[dict] = response.json()
+
+        for log in data:
+            try:
+                log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
+            except ValueError:
+                return {"error": f"Некорректный формат даты/времени: {log.get('DatTime')}"}
+
+            color, error_type = await check_error(log.get("Message"), session)
+
+            query = logs.insert().values(
+                datetime=log_datetime,
+                owner_name=log.get("DepCode"),
+                file_name=log.get("FileName"),
+                message=log.get("Message"),
+                error_type=error_type,
+                color=color,
+            )
+            try:
+                await session.execute(query)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Ошибка при добавлении записи в базу данных: {e}",
+                )
+
+    await session.commit()
+    print(f"Логи импортированы корректно, количество строк: {len(data)}")
+    return {"message": f"Логи импортированы корректно, количество строк: {len(data)}"}
 
 @router.post("/add_logs")
 async def add_logs(

@@ -1,5 +1,6 @@
 from datetime import datetime, time
 
+import httpx
 import requests
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -239,13 +240,15 @@ async def test_router(datetime_: str):
         url += f"/?date={datetime.now().strftime('%d%m%Y')}"
 
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    try:
-        response = requests.get(url, headers=headers, verify=False)
-        response.raise_for_status()  # Бросает исключение для статусов 4xx и 5xx
-        print(response.json(), response.status_code)
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, verify=False)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            return {"error": f"HTTP Error: {exc.response.status_code}", "detail": exc.response.text}
+        except httpx.RequestError as exc:
+            return {"error": f"Request failed: {str(exc)}"}
     
 @router.post("/add_logs")
 async def add_logs(datetime_: str | None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):

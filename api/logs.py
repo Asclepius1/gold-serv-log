@@ -256,32 +256,32 @@ async def add_old_logs(
                     detail=f"Не удалось подключиться к серверу: {exc}",
                 )
 
-        # Обрабатываем данные
-        data: list[dict] = response.json()
+            # Обрабатываем данные
+            data: list[dict] = response.json()
 
-        for log in data:
-            try:
-                log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
-            except ValueError:
-                return {"error": f"Некорректный формат даты/времени: {log.get('DatTime')}"}
+            for log in data:
+                try:
+                    log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
+                except ValueError:
+                    return {"error": f"Некорректный формат даты/времени: {log.get('DatTime')}"}
 
-            color, error_type = await check_error(log.get("Message"), session)
+                color, error_type = await check_error(log.get("Message"), session)
 
-            query = logs.insert().values(
-                datetime=log_datetime,
-                owner_name=log.get("DepCode"),
-                file_name=log.get("FileName"),
-                message=log.get("Message"),
-                error_type=error_type,
-                color=color,
-            )
-            try:
-                await session.execute(query)
-            except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Ошибка при добавлении записи в базу данных: {e}",
+                query = logs.insert().values(
+                    datetime=log_datetime,
+                    owner_name=log.get("DepCode"),
+                    file_name=log.get("FileName"),
+                    message=log.get("Message"),
+                    error_type=error_type,
+                    color=color,
                 )
+                try:
+                    await session.execute(query)
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Ошибка при добавлении записи в базу данных: {e}",
+                    )
 
     await session.commit()
     print(f"Логи импортированы корректно, количество строк: {len(data)}")

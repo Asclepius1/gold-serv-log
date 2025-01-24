@@ -231,69 +231,77 @@ async def delete_errors(
 
     return {"message": f"Удалено {len(error_ids)} ошибок."}
 
-@router.get("/test-test")
-async def test_router(datetime_: str):
-    url = f'{GOLD_SERV_API_URL}'
-    if datetime_:
-        url += f'/?date={datetime_}'
-    else:
-        url += f"/?date={datetime.now().strftime('%d%m%Y')}"
+@router.post("/add_logs")
+async def add_logs(
+    datetime_: str | None = None,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(superuser_required),
+):
+    # Получаем последний лог
+    latest_current_log_query = select(logs).order_by(logs.c['datetime'].desc()).limit(1)
+    result = await session.execute(latest_current_log_query)
+    latest_current_log = result.fetchone()
 
+    if not latest_current_log:
+        return {"message": "Нет предыдущих логов в базе данных"}
+
+    # Формируем URL
+    date_str = datetime_ or datetime.now().strftime('%d%m%Y')
+    url = f"{GOLD_SERV_API_URL}/?date={date_str}"
+
+    # Выполняем запрос к серверу
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-
-    # Создаем клиент с отключенной проверкой SSL
     async with httpx.AsyncClient(verify=False) as client:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
-            return response.json()
         except httpx.HTTPStatusError as exc:
-            return {"error": f"HTTP Error: {exc.response.status_code}", "detail": exc.response.text}
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=f"Ошибка HTTP: {exc.response.status_code}, текст ответа: {exc.response.text}",
+            )
         except httpx.RequestError as exc:
-            return {"error": f"Request failed: {str(exc)}"}
-    
-@router.post("/add_logs")
-async def add_logs(datetime_: str | None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
-    latest_current_log = select(logs).order_by(logs.c['datetime'].desc()).limit(1)
-    result = await session.execute(latest_current_log)
-    latest_current_log = result.fetchone()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Не удалось подключиться к серверу: {exc}",
+            )
 
-    url = f'{GOLD_SERV_API_URL}'
-    if datetime_:
-        url += f'/?date={datetime_}'
-    else:
-        url += f"/?date={datetime.now().strftime('%d%m%Y')}"
+    # Обрабатываем данные
+    data: list[dict] = response.json()
+    correct_data = get_current_data(
+        data,
+        {'datetime': latest_current_log.datetime, 'file_name': latest_current_log.file_name},
+    )
 
-    headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    response = requests.get(url, headers=headers, verify=False)
+    if not correct_data:
+        return {"message": "Нет данных для импорта"}
 
-    if response.status_code == 200:
-        data: list[dict] = response.json()
-        correct_data = get_current_data(data, {'datetime': latest_current_log.datetime, 'file_name': latest_current_log.file_name})
-        
-        if correct_data:
-            for log in correct_data:
-                try:
-                    log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
-                except ValueError:
-                    return {"error": f"Invalid datetime format for log: {log.get('DatTime')}"}
-                
-                color, error_type = await check_error(log.get("Message"), session)
+    for log in correct_data:
+        try:
+            log_datetime = datetime.strptime(log.get("DatTime"), "%Y-%m-%d %H:%M:%S.%f0")
+        except ValueError:
+            return {"error": f"Некорректный формат даты/времени: {log.get('DatTime')}"}
 
-                query = logs.insert().values(
-                    datetime=log_datetime,
-                    owner_name=log.get("DepCode"),
-                    file_name=log.get("FileName"),
-                    message=log.get("Message"),
-                    error_type=error_type,
-                    color=color,
-                )
-                await session.execute(query)
-            await session.commit()
-            return {"message": f"Логи импортированы корректно, кол-во строк: {len(correct_data)}"}
-        return {"message": 'Нет данных для импорта'}
-    else:
-        print(response.status_code, response.text)
+        color, error_type = await check_error(log.get("Message"), session)
+
+        query = logs.insert().values(
+            datetime=log_datetime,
+            owner_name=log.get("DepCode"),
+            file_name=log.get("FileName"),
+            message=log.get("Message"),
+            error_type=error_type,
+            color=color,
+        )
+        try:
+            await session.execute(query)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка при добавлении записи в базу данных: {e}",
+            )
+
+    await session.commit()
+    return {"message": f"Логи импортированы корректно, количество строк: {len(correct_data)}"}
 
 
 

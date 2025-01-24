@@ -4,9 +4,10 @@ from fastapi import FastAPI
 import pytz
 from models.db import get_autorefresh_state
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.redis import RedisJobStore
 from contextlib import asynccontextmanager
 
-
+from config import REDIS_HOST, REDIS_PASS
 
 timezone_almaty = pytz.timezone('Asia/Almaty')
 
@@ -16,7 +17,11 @@ if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-scheduler = AsyncIOScheduler()
+jobstores = {
+    'default': RedisJobStore(host=REDIS_HOST, db=0, decode_responses=True, password=REDIS_PASS)
+}
+
+scheduler = AsyncIOScheduler(jobstores=jobstores)
 
 async def update_scheduler():
     """Обновляет задачи в планировщике в зависимости от состояния autorefresh."""
@@ -50,6 +55,8 @@ async def lifespan(app: FastAPI):
     print("Планировщик запущен")
     
     scheduler.add_job(delete_old_files, "cron", hour=0, minute=0, timezone=timezone_almaty)
+
+    await update_scheduler()
 
     yield  # Даем FastAPI стартовать
 

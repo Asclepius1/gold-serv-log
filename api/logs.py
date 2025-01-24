@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import logs, log_filters, log_errors
 from models.db import get_async_session, get_autorefresh_state, set_autorefresh_state
-from auth.auth import superuser_required
+from auth.auth import superuser_required, current_user
 from schedule import update_scheduler
 from models.schemas import ErrorSchema
 
@@ -237,6 +237,7 @@ async def add_logs(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(superuser_required),
 ):
+    print(f"Началось добавление логов дата:{datetime_}")
     # Получаем последний лог
     latest_current_log_query = select(logs).order_by(logs.c['datetime'].desc()).limit(1)
     result = await session.execute(latest_current_log_query)
@@ -274,6 +275,7 @@ async def add_logs(
     )
 
     if not correct_data:
+        print("Нет данных для импорта")
         return {"message": "Нет данных для импорта"}
 
     for log in correct_data:
@@ -301,6 +303,7 @@ async def add_logs(
             )
 
     await session.commit()
+    print(f"Логи импортированы корректно, количество строк: {len(correct_data)}")
     return {"message": f"Логи импортированы корректно, количество строк: {len(correct_data)}"}
 
 
@@ -331,7 +334,7 @@ async def save_filters(
 
 @router.get("/filters")
 async def get_filters(
-    user: User = Depends(superuser_required),
+    user: User = Depends(current_user),
     session: AsyncSession = Depends(get_async_session)
 ):
     query = select(log_filters).where(log_filters.c.user_id == user.id)

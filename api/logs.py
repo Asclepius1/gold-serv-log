@@ -231,7 +231,7 @@ async def delete_errors(
     return {"message": f"Удалено {len(error_ids)} ошибок."}
 
 @router.get("/test-test")
-def test_router(datetime_: str):
+async def test_router(datetime_: str):
     url = f'{GOLD_SERV_API_URL}'
     if datetime_:
         url += f'/?date={datetime_}'

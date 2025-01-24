@@ -18,7 +18,7 @@ if sys.platform.startswith("win"):
 
 
 jobstores = {
-    'default': RedisJobStore(host=REDIS_HOST, db=0, decode_responses=True, password=REDIS_PASS)
+    'default': RedisJobStore(host=REDIS_HOST, db=0, password=REDIS_PASS)
 }
 
 scheduler = AsyncIOScheduler(jobstores=jobstores)

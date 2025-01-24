@@ -88,3 +88,23 @@ align-items: center;
     height: 1.25rem;
     cursor: pointer;
 }
+
+#logsTableContainer {
+    max-height: 500px; /* Установите высоту контейнера для таблицы */
+    overflow-y: auto;  /* Разрешаем вертикальную прокрутку */
+  }
+  
+  #logsFullTable {
+    width: 100%;
+  }
+  
+  #logsThead th {
+    position: sticky; /* Закрепляем заголовки таблицы */
+    top: 0;
+    z-index: 1; /* Устанавливаем z-index, чтобы заголовки оставались поверх контента */
+  }
+  
+  #logsTable {
+    overflow-y: scroll;
+    height: 400px; /* Установите высоту таблицы для прокрутки */
+  }

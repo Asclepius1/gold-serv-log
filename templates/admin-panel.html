@@ -120,149 +120,149 @@
                         <button type="button" class="btn btn-danger" onclick="showDeleteErrorModal()">Удалить ошибку</button>
                     </div>
                 </div>
-                <table class="table table-striped table-light ">
-                    <thead>
-                        <tr>
-                          <th scope="col">
-                            <div class="dropdown">
-                              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                ID ⚙
-                              </button>
-                              <ul class="dropdown-menu p-2">
-                                  <li>
-                                      <button class="dropdown-item" onclick='toggleSort("id")'>Сортировать ↑↓</button>
-                                  </li>
-                                  <li>
-                                      <input type="text" id="filter-id" class="form-control form-control-sm mt-2" placeholder="Фильтр по ID">
-                                  </li>
-                              </ul>
-                            </div>
-                          </th>
-                          <th scope="col">
-                            <div class="dropdown">
-                              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                Владелец ⚙
-                              </button>
-                              <ul class="dropdown-menu p-2">
-                                  <li>
-                                      <button class="dropdown-item" onclick='toggleSort("owner")'>Сортировать ↑↓</button>
-                                  </li>
-                                  <li>
-                                      <input type="text" id="filter-owner" class="form-control form-control-sm mt-2" placeholder="Фильтр по владельцу">
-                                  </li>
-                              </ul>
-                            </div>
-                          </th>
-                          <th scope="col">
-                            <div class="dropdown">
+                <div class="" id="logsTableContainer">
+                    <table class="table table-striped table-light" id="logsFullTable">
+                        <thead id="logsThead">
+                            <tr>
+                            <th scope="col">
+                                <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    Дата ⚙
+                                    ID ⚙
                                 </button>
                                 <ul class="dropdown-menu p-2">
                                     <li>
-                                        <button class="dropdown-item" onclick='toggleSort("datetime")'>Сортировать ↑↓</button>
+                                        <button class="dropdown-item" onclick='toggleSort("id")'>Сортировать ↑↓</button>
                                     </li>
                                     <li>
-                                        <div class="d-flex flex-column">
-                                            <label for="start-date">От:</label>
-                                            <input type="date" id="start-date" class="form-control form-control-sm">
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="d-flex flex-column">
-                                            <label for="end-date">До:</label>
-                                            <input type="date" id="end-date" class="form-control form-control-sm">
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item" id="date-range-selector">Применить диапазон</button>
+                                        <input type="text" id="filter-id" class="form-control form-control-sm mt-2" placeholder="Фильтр по ID">
                                     </li>
                                 </ul>
-                            </div>
-                          </th>
-                          
-                          <th scope="col">
-                            <div class="dropdown">
-                              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                Сообщение ⚙
-                              </button>
-                              <ul class="dropdown-menu p-2">
-                                  <li>
-                                      <button class="dropdown-item" onclick='toggleSort("message")'>Сортировать ↑↓</button>
-                                  </li>
-                                  <li>
-                                      <input type="text" id="filter-message" class="form-control form-control-sm mt-2" placeholder="Фильтр по сообщению">
-                                  </li>
-                              </ul>
-                            </div>
-                          </th>
-                          <th scope="col">
-                            <div class="dropdown">
-                              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                Тип ⚙
-                              </button>
-                              <ul class="dropdown-menu p-2">
-                                  <li>
-                                      <button class="dropdown-item" onclick='toggleSort("error_type")'>Сортировать ↑↓</button>
-                                  </li>
-                                  <li>
-                                      <input type="text" id="filter-error-type" class="form-control form-control-sm mt-2" placeholder="Фильтр по типу">
-                                  </li>
-                              </ul>
-                            </div>
-                          </th>
-                          <th scope="col">
-                            <div class="dropdown">
+                                </div>
+                            </th>
+                            <th scope="col">
+                                <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    Цвет ⚙
+                                    Владелец ⚙
                                 </button>
-                                <ul class="dropdown-menu ddm p-3">
-                                    <!-- <li>
-                                        <button class="dropdown-item dditc" onclick='toggleSort("color")'>
-                                            <i class="bi bi-sort-alpha-down"></i> Сортировать ↑↓
-                                        </button>
-                                    </li> -->
-                                    <!-- <li><hr class="dropdown-divider dddd"></li> -->
+                                <ul class="dropdown-menu p-2">
                                     <li>
-                                        <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-green" onclick="selectColor('green')">
-                                            <span class="color-box" style="background-color: #d1e7dd;"></span>
-                                            <span class="ms-2">Зеленый</span>
-                                        </button>
+                                        <button class="dropdown-item" onclick='toggleSort("owner")'>Сортировать ↑↓</button>
                                     </li>
                                     <li>
-                                        <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-yellow" onclick="selectColor('yellow')">
-                                            <span class="color-box" style="background-color: rgb(242 231 195);"></span>
-                                            <span class="ms-2">Желтый</span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-red" onclick="selectColor('red')">
-                                            <span class="color-box" style="background-color: #eccccf;"></span>
-                                            <span class="ms-2">Красный</span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-red" onclick="selectColor('')">
-                                            <span class="">🔷</span>
-                                            <span class="ms-2">Сбросить</span>
-                                        </button>
+                                        <input type="text" id="filter-owner" class="form-control form-control-sm mt-2" placeholder="Фильтр по владельцу">
                                     </li>
                                 </ul>
-                            </div>
-                          </th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTable">
-                        <tr>
-                            <td>test</td>
-                            <td>test</td>
-                            <td>test</td>
-                            <td>test</td>
-                            <td>test</td>
-                            <td>test</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </div>
+                            </th>
+                            <th scope="col">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Дата ⚙
+                                    </button>
+                                    <ul class="dropdown-menu p-2">
+                                        <li>
+                                            <button class="dropdown-item" onclick='toggleSort("datetime")'>Сортировать ↑↓</button>
+                                        </li>
+                                        <li>
+                                            <div class="d-flex flex-column">
+                                                <label for="start-date">От:</label>
+                                                <input type="date" id="start-date" class="form-control form-control-sm">
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="d-flex flex-column">
+                                                <label for="end-date">До:</label>
+                                                <input type="date" id="end-date" class="form-control form-control-sm">
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" id="date-range-selector">Применить диапазон</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </th>
+                            
+                            <th scope="col">
+                                <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Сообщение ⚙
+                                </button>
+                                <ul class="dropdown-menu p-2">
+                                    <li>
+                                        <button class="dropdown-item" onclick='toggleSort("message")'>Сортировать ↑↓</button>
+                                    </li>
+                                    <li>
+                                        <input type="text" id="filter-message" class="form-control form-control-sm mt-2" placeholder="Фильтр по сообщению">
+                                    </li>
+                                </ul>
+                                </div>
+                            </th>
+                            <th scope="col">
+                                <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Тип ⚙
+                                </button>
+                                <ul class="dropdown-menu p-2">
+                                    <li>
+                                        <button class="dropdown-item" onclick='toggleSort("error_type")'>Сортировать ↑↓</button>
+                                    </li>
+                                    <li>
+                                        <input type="text" id="filter-error-type" class="form-control form-control-sm mt-2" placeholder="Фильтр по типу">
+                                    </li>
+                                </ul>
+                                </div>
+                            </th>
+                            <th scope="col">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Цвет ⚙
+                                    </button>
+                                    <ul class="dropdown-menu ddm p-3">
+                                        <li>
+                                            <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-green" onclick="selectColor('green')">
+                                                <span class="color-box" style="background-color: #d1e7dd;"></span>
+                                                <span class="ms-2">Зеленый</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-yellow" onclick="selectColor('yellow')">
+                                                <span class="color-box" style="background-color: rgb(242 231 195);"></span>
+                                                <span class="ms-2">Желтый</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-red" onclick="selectColor('red')">
+                                                <span class="color-box" style="background-color: #eccccf;"></span>
+                                                <span class="ms-2">Красный</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item dditc d-flex align-items-center" id="filter-color-red" onclick="selectColor('')">
+                                                <span class="">🔷</span>
+                                                <span class="ms-2">Сбросить</span>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTable">
+                            <tr>
+                                <td>test</td>
+                                <td>test</td>
+                                <td>test</td>
+                                <td>test</td>
+                                <td>test</td>
+                                <td>test</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination" class="d-flex justify-content-center">
+                    <button id="prevPage" class="btn btn-secondary" onclick="loadLogs(currentPage - 1)">Назад</button>
+                    <button id="nextPage" class="btn btn-secondary" onclick="loadLogs(currentPage + 1)">Вперед</button>
+                </div>
             </div>
         </div>
     </div>

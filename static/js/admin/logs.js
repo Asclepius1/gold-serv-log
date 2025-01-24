@@ -22,7 +22,7 @@ async function saveFilters() {
         credentials: "include",
         body: JSON.stringify(filters)
     });
-    loadLogs()
+    loadLogs(currentPage)
 }
 
 
@@ -92,25 +92,21 @@ function toggleAutorefresh(checkbox){
     .catch(error => console.error('Ошибка:', error))
 }
 
+let currentPage = 1; // Начальная страница
+const pageSize = 50;
+
 async function loadLogs(page = 1) {
-    // const sortColumn = currentSort.column || "datetime";
-    // const sortOrder = currentSort.order || "desc";
-    const pageSize = 50;
-        
+    currentPage = page;
+
     const filters = await fetch("/logs/filters", {
         method: "GET",
         credentials: "include"
     }).then(res => res.json());
 
-    loadAutoRefreshCheckbox();
-    setToInputCurrentValues(filters);
-
     // Формируем URL с параметрами
     const params = new URLSearchParams({
         page,
-        page_size: pageSize,
-        // sort_by: sortColumn,
-        // sort_order: sortOrder
+        page_size: pageSize
     });
 
     if (filters.id) params.append("log_id", filters.id);
@@ -135,9 +131,9 @@ async function loadLogs(page = 1) {
 
         data.data.forEach(log => {
             const row = document.createElement("tr");
-            if(log.color == 'red') row.classList.add("table-danger")
-            else if(log.color == 'yellow') row.classList.add("table-warning")
-            else row.classList.add("table-success")
+            if (log.color == 'red') row.classList.add("table-danger");
+            else if (log.color == 'yellow') row.classList.add("table-warning");
+            else row.classList.add("table-success");
             
             row.innerHTML = `
                 <td>${log.id}</td>
@@ -151,20 +147,20 @@ async function loadLogs(page = 1) {
             `;
             tableBody.appendChild(row);
         });
-        const messageButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
-        messageButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const fullMessage = button.getAttribute('data-message');
-                document.getElementById('fullMessageContent').textContent = fullMessage;
-            });
-        });
+
+        // Управление пагинацией
+        const totalPages = Math.ceil(data.total / pageSize);
+        document.getElementById("prevPage").disabled = currentPage === 1;
+        document.getElementById("nextPage").disabled = currentPage === totalPages;
 
     } catch (error) {
         console.error("Ошибка загрузки логов:", error);
     }
 }
 
-setInterval(loadLogs, 600000, 1);
+setInterval(() => {
+    loadLogs(currentPage);
+}, 600000);
 
 function toggleSort(column) {
     if (currentSort.column === column) {
@@ -240,7 +236,7 @@ async function applyErrorsToAllLogs() {
 
         if (response.ok) {
             alert("Ошибки успешно применены ко всем логам!");
-            loadLogs();
+            loadLogs(currentPage);
         } else {
             const error = await response.json();
             alert(`Ошибка: ${error.detail}`);

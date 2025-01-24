@@ -231,7 +231,7 @@ async def delete_errors(
     return {"message": f"Удалено {len(error_ids)} ошибок."}
 
 @router.get("/test-test")
-async def test_router(datetime_: str):
+def test_router(datetime_: str):
     url = f'{GOLD_SERV_API_URL}'
     if datetime_:
         url += f'/?date={datetime_}'
@@ -239,12 +239,11 @@ async def test_router(datetime_: str):
         url += f"/?date={datetime.now().strftime('%d%m%Y')}"
 
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    response = requests.get(url, headers=headers, verify=False)
-    if response.status_code == 200:
-        data: list[dict] = response.json()
-        return data
-    else:
-        return response.text
+    try:
+        response = requests.get(url, headers=headers, verify=False)
+        response.raise_for_status()  # Бросает исключение для статусов 4xx и 5xx
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
     
 @router.post("/add_logs")
 async def add_logs(datetime_: str | None = None, session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):

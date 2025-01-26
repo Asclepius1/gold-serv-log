@@ -75,7 +75,7 @@ async def get_logs(
 
     result = await session.execute(query)
     log_entries = result.fetchall()
-
+    print(log_entries[0].message)
     return {
         "data": [
             {

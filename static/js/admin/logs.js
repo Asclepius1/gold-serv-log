@@ -148,6 +148,14 @@ async function loadLogs(page = 1) {
             tableBody.appendChild(row);
         });
 
+        const messageButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
+        messageButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const fullMessage = button.getAttribute('data-message');
+                document.getElementById('fullMessageContent').textContent = fullMessage;
+            });
+        });
+
         // Управление пагинацией
         const totalPages = Math.ceil(data.total / pageSize);
         document.getElementById("prevPage").disabled = currentPage === 1;

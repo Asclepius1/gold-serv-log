@@ -3,21 +3,21 @@ from api import api_router
 
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import Depends, FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import PlainTextResponse
-
+from fastapi_limiter.depends import RateLimiter
 
 from auth.auth import auth_backend, fastapi_users
 from auth.schemas import UserCreate, UserRead, UserUpdate
-from auth.db import User
 
 from schedule import lifespan
 
 app = FastAPI(lifespan=lifespan)
+
 
 @app.exception_handler(StarletteHTTPException)
 async def unauthorized_exception_handler(request: Request, exc: HTTPException):
@@ -54,6 +54,7 @@ app.include_router(
     fastapi_users.get_auth_router(auth_backend),
     prefix="/auth/jwt",
     tags=["auth"],
+    dependencies=[Depends(RateLimiter(times=5, seconds=900))],
 )
 
 app.include_router(

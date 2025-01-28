@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime
 from fastapi import FastAPI
+from models.db import init_redis
 import pytz
 from models.db import get_autorefresh_state
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -49,8 +49,10 @@ async def update_scheduler():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from api.files import delete_old_files
 
+    await init_redis()
+    print("FastAPILimiter инициализирован")
+    from api.files import delete_old_files
     scheduler.start()
     print("Планировщик запущен")
     

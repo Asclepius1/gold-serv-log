@@ -54,7 +54,7 @@ app.include_router(
     fastapi_users.get_auth_router(auth_backend),
     prefix="/auth/jwt",
     tags=["auth"],
-    dependencies=[Depends(RateLimiter(times=5, seconds=900))],
+    dependencies=[Depends(RateLimiter(times=5, seconds=3600))],
 )
 
 app.include_router(

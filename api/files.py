@@ -145,6 +145,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
                 print(f"Ошибка при запросе {url}: {exc.response.status_code}, {exc.response.text}")
             except httpx.RequestError as exc:
                 print(f"Ошибка сети при запросе {url}: {str(exc)}")
+                print(f"Дополнительные детали: {exc.request.url}, {exc.request.headers}")
 
     await session.commit()
 

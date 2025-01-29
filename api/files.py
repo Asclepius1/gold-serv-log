@@ -26,7 +26,7 @@ router = APIRouter(prefix="/files", tags=["files"], )
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
-
+timeout = httpx.Timeout(10.0, read=20.0)
 
 @router.get("/reports")
 async def get_reports(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
@@ -120,7 +120,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
     
     # Скачиваем файлы для каждого param
     saved_files = []
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=False, timeout=timeout) as client:
         for param, name in params:
             url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
             headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}

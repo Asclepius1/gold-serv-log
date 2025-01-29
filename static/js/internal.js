@@ -10,7 +10,9 @@ async function updateButton(buttonId, maxAttempts) {
             'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ max_attempts: maxAttemptsInt }),
+        params: {
+                "max_attempts": maxAttemptsInt
+            }
     });
     const data = await response.json();
     console.log(data.message);

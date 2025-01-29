@@ -147,7 +147,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
             except httpx.RequestError as exc:
                 print(f"Ошибка сети при запросе {url}: {str(exc)}")
                 print(f"Дополнительные детали: {exc.request.url}, {exc.request.headers}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
     await session.commit()
 
     if not saved_files:

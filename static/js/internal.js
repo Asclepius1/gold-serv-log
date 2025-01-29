@@ -24,6 +24,8 @@ async function ButtonStatus(buttonId) {
     });
     const data = await response.json();
 
+    const maxAttemptsElement = document.getElementById(`maxAttemptsInput_${buttonId}`)
+    maxAttemptsElement.placeholder = `Лимит попыток ${data.max_attempts}`
     const attemptsElement = document.getElementById(`attempts_${buttonId}`);
     if (attemptsElement) {
         attemptsElement.innerText = data.attempts_left;

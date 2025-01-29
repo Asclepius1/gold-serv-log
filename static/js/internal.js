@@ -1,5 +1,9 @@
 async function updateButton(buttonId, maxAttempts) {
-    console.log(buttonId, maxAttempts)
+    const maxAttemptsInt = parseInt(maxAttempts, 10);
+    if (isNaN(maxAttemptsInt)) {
+        console.error("Ошибка: maxAttempts не является числом");
+        return;
+    }
     const response = await fetch(`/files/update_button/${buttonId}`, {
         method: 'POST',
         headers: {

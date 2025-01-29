@@ -9,6 +9,7 @@ from typing import List
 from fastapi.responses import FileResponse
 import httpx
 import requests
+from tenacity import retry, stop_after_attempt, wait_fixed
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -90,6 +91,12 @@ async def add_report(
     await session.commit()
     return {"message": "Успешно добавлено"}
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(4))  # 3 попытки с задержкой 4 секунды
+async def make_request(client: httpx.AsyncClient, url: str, headers: dict):
+    response = await client.get(url, headers=headers)
+    response.raise_for_status()  # Генерирует исключение, если статус ошибки
+    return response
+
 @router.post("/upload/")
 async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
     # Проверяем наличие владельца
@@ -118,8 +125,9 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
             url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
             headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
             try:
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
+                # response = await client.get(url, headers=headers)
+                # response.raise_for_status()
+                response = await make_request(client, url, headers)
 
                 owner_dir = UPLOAD_DIR / owner.name
                 owner_dir.mkdir(parents=True, exist_ok=True)
@@ -147,7 +155,6 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
             except httpx.RequestError as exc:
                 print(f"Ошибка сети при запросе {url}: {str(exc)}")
                 print(f"Дополнительные детали: {exc.request.url}, {exc.request.headers}")
-            await asyncio.sleep(3)
     await session.commit()
 
     if not saved_files:

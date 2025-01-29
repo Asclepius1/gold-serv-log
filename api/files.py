@@ -277,7 +277,7 @@ async def delete_link(report_id: int, session: AsyncSession = Depends(get_async_
     return {"message": "Отчет успешно удален"}
 
 @router.post("/update_button/{button_id}")
-def update_button(button_id: str, max_attempts: int, user: User = Depends(current_user)):
+def update_button(button_id: str, max_attempts: str, user: User = Depends(current_user)):
     button_key = f"button_press:{button_id}"
     # Обновляем максимальное количество попыток для кнопки
     redis_client.hset(button_key, "max_attempts", max_attempts)

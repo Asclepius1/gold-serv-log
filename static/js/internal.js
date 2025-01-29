@@ -4,15 +4,13 @@ async function updateButton(buttonId, maxAttempts) {
         console.error("Ошибка: maxAttempts не является числом");
         return;
     }
-    const response = await fetch(`/files/update_button/${buttonId}`, {
+    const response = await fetch(`/files/update_button/${buttonId}?max_attempts=${maxAttemptsInt}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         credentials: 'include',
-        params: {
-                "max_attempts": maxAttemptsInt
-            }
+        // body: JSON.stringify({ max_attempts: maxAttemptsInt }),
     });
     const data = await response.json();
     console.log(data.message);

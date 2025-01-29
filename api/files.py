@@ -221,10 +221,16 @@ def get_button_status(button_id: str):
     press_data = redis_client.hgetall(button_key)
 
     if not press_data:
-        redis_client.hset(button_key, mapping={"count": 0, "last_press": 0})
+        # redis_client.hset(button_key, mapping={"count": 0, "last_press": 0})
+        redis_client.hset(button_key, mapping={
+            "count": 0,
+            "last_press": 0,
+            "max_attempts": 2  # По умолчанию 2 попытки
+        })
 
     press_count = int(press_data.get("count", 0))
     last_press_time = int(press_data.get("last_press", 0))
+    max_attempts = int(press_data.get("max_attempts", 2))
 
     # Если прошло 12 часов с первого нажатия, сбрасываем счетчик
     if press_count >= 1 and (current_time - last_press_time) >= 43200:
@@ -234,8 +240,10 @@ def get_button_status(button_id: str):
 
     return {
         "button_id": button_id,
-        "attempts_left": max(0, 2 - press_count),
-        "last_press_time": last_press_time
+        # "attempts_left": max(0, 2 - press_count),
+        "attempts_left": max(0, max_attempts - press_count),
+        "last_press_time": last_press_time,
+        "max_attempts": max_attempts
     }
 
 @router.get("/button_status/{button_id}")
@@ -267,6 +275,14 @@ async def delete_link(report_id: int, session: AsyncSession = Depends(get_async_
     await session.execute(query)
     await session.commit()
     return {"message": "Отчет успешно удален"}
+
+@router.post("/update_button/{button_id}")
+def update_button(button_id: str, max_attempts: int, user: User = Depends(current_user)):
+    button_key = f"button_press:{button_id}"
+
+    # Обновляем максимальное количество попыток для кнопки
+    redis_client.hset(button_key, "max_attempts", max_attempts)
+    return {"message": f"Максимальное количество попыток для кнопки {button_id} обновлено на {max_attempts}"}
 
 @router.post("/reports/{report_id}/access")
 async def update_report_access(

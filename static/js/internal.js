@@ -1,3 +1,17 @@
+async function updateButton(buttonId, maxAttempts) {
+    const response = await fetch(`/files/update_button/${buttonId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ max_attempts: maxAttempts }),
+    });
+    const data = await response.json();
+    console.log(data.message);
+    ButtonStatus(buttonId); // Обновляем статус кнопки после изменения
+}
+
 async function ButtonStatus(buttonId) {
     const response = await fetch(`/files/button_status/${buttonId}`, {
         method: 'GET',
@@ -10,22 +24,36 @@ async function ButtonStatus(buttonId) {
         attemptsElement.innerText = data.attempts_left;
     }
 
+    // const timeRemainingElement = document.getElementById(`timeRemaining_${buttonId}`);
+    // if (!timeRemainingElement) {
+    //     console.error(`Element with ID timeRemaining_${buttonId} not found`);
+    //     return;
+    // }
+
     const timeRemainingElement = document.getElementById(`timeRemaining_${buttonId}`);
-    if (!timeRemainingElement) {
-        console.error(`Element with ID timeRemaining_${buttonId} not found`);
-        return;
+    if (timeRemainingElement) {
+        if (data.attempts_left === 0) {
+            timeRemainingElement.innerText = "";
+            document.getElementById(`reloadBtn`).disabled = true;
+        } else if (data.last_press_time > 0) {
+            let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
+            startCountdown(buttonId, timeRemaining);
+        } else {
+            timeRemainingElement.innerText = "";
+            document.getElementById(`reloadBtn`).disabled = data.attempts_left === 0;
+        }
     }
 
-    if (data.attempts_left === 0) {
-        timeRemainingElement.innerText = "";
-        document.getElementById(`reloadBtn`).disabled = true;
-    } else if (data.last_press_time > 0) {
-        let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
-        startCountdown(buttonId, timeRemaining);
-    } else {
-        timeRemainingElement.innerText = "";
-        document.getElementById(`reloadBtn`).disabled = data.attempts_left === 0;
-    }
+    // if (data.attempts_left === 0) {
+    //     timeRemainingElement.innerText = "";
+    //     document.getElementById(`reloadBtn`).disabled = true;
+    // } else if (data.last_press_time > 0) {
+    //     let timeRemaining = Math.max(0, 14400 - (Date.now() / 1000 - data.last_press_time));
+    //     startCountdown(buttonId, timeRemaining);
+    // } else {
+    //     timeRemainingElement.innerText = "";
+    //     document.getElementById(`reloadBtn`).disabled = data.attempts_left === 0;
+    // }
 }
 
 function startCountdown(buttonId, time) {
@@ -164,8 +192,14 @@ async function loadFiles(path = "", id = null) {
             const reloadItems = document.getElementById("reloadItems");
             reloadItems.innerHTML = '';
             reloadItems.innerHTML = `
-            <span id="timeRemaining_${id}" timer>-</span>
-            <button class="btn btn-secondary mb-2" id="reloadBtn" onclick="reloadOwnerFilesById(path='${path}', id=${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
+            <div class="input-group mb-2 me-1 mt-1">
+                <input id="maxAttemptsInput_${id}" type="text" class="form-control" placeholder="Лимит попыток" aria-label="Лимит попыток" aria-describedby="button-addon${id}">
+                <button onclick="updateButton(${id}, document.getElementById('maxAttemptsInput_${id}').value)" class="btn btn-outline-secondary" type="button" id="button-addon${id}">Применить</button>
+            </div>
+            <div class="d-flex flex-column align-items-center align-items-end" style="weight: max-contenct;">
+                <span id="timeRemaining_${id}" timer>-</span>
+                <button class="btn btn-secondary mb-2" id="reloadBtn" style="width: max-content;" onclick="reloadOwnerFilesById(path='${path}', id=${id})" disabled >🔄 Обновить <span id="attempts_${id}">-</span></button>
+            </div>
             `;
             
             ButtonStatus(id);

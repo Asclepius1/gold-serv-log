@@ -96,6 +96,7 @@ async function pressButton(buttonId) {
     });
     const data = await response.json();
     console.log(data.message);
+    
     ButtonStatus(buttonId);
 }
 
@@ -124,7 +125,6 @@ async function getFilesByOwnerId(id) {
 }
 
 async function reloadOwnerFilesById(path, id) {
-    document.getElementById(`reloadBtn`).disabled = true;
     document.getElementById("fileTable").innerHTML = '';
     const spinner = document.getElementById("spinner");
     spinner.style.display = "block";

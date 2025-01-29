@@ -1,4 +1,5 @@
 async function updateButton(buttonId, maxAttempts) {
+    console.log(buttonId, maxAttempts)
     const response = await fetch(`/files/update_button/${buttonId}`, {
         method: 'POST',
         headers: {

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <title>{{ title }}</title>
+  </head>
+  <body>
+    <header class="bg-light py-3 shadow-sm">
+      <div class="container d-flex justify-content-between align-items-center">
+        <div class="logo text-primary fw-bold">Персонал и объекты</div>
+        <nav class="nav">
+          <a class="nav-link" href="/internal">Главная</a>
+          <a class="nav-link" href="/admin">Админка</a>
+          <a class="nav-link" href="/hr">HR-панель</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container mt-4">
+      <div class="card">
+        <div class="card-header">
+          <ul
+            class="nav nav-tabs card-header-tabs"
+            id="personnelTabs"
+            role="tablist"
+          >
+            <li class="nav-item">
+              <button
+                class="nav-link active"
+                data-bs-toggle="tab"
+                data-bs-target="#workers"
+              >
+                Работники
+              </button>
+            </li>
+            <li class="nav-item">
+              <button
+                class="nav-link"
+                data-bs-toggle="tab"
+                data-bs-target="#locations"
+              >
+                Склады
+              </button>
+            </li>
+            <li class="nav-item">
+              <button
+                class="nav-link"
+                data-bs-toggle="tab"
+                data-bs-target="#directors"
+              >
+                Директора
+              </button>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body tab-content">
+          <div class="tab-pane fade show active" id="workers">
+            <div class="d-flex justify-content-between mb-2">
+              <div>
+                <input id="workersShowInactive" type="checkbox" />
+                <label for="workersShowInactive">Показывать уволенных</label>
+              </div>
+              <div>
+                <input
+                  id="newWorkerName"
+                  class="form-control d-inline-block"
+                  style="width: 220px"
+                  placeholder="Имя сотрудника"
+                />
+                <button id="createWorkerBtn" class="btn btn-primary">
+                  Создать
+                </button>
+              </div>
+            </div>
+            <div id="workersList" class="list-group">Загрузка...</div>
+          </div>
+
+          <div class="tab-pane fade" id="locations">
+            <div class="d-flex justify-content-between mb-2">
+              <div>
+                <input id="locationsShowInactive" type="checkbox" />
+                <label for="locationsShowInactive"
+                  >Показывать деактивированные</label
+                >
+              </div>
+              <div>
+                <input
+                  id="newLocationName"
+                  class="form-control d-inline-block"
+                  style="width: 220px"
+                  placeholder="Название склада"
+                />
+                <button id="createLocationBtn" class="btn btn-primary">
+                  Создать
+                </button>
+              </div>
+            </div>
+            <div id="locationsList" class="list-group">Загрузка...</div>
+          </div>
+
+          <div class="tab-pane fade" id="directors">
+            <div class="d-flex justify-content-between mb-2">
+              <div>
+                <input id="directorsShowInactive" type="checkbox" />
+                <label for="directorsShowInactive"
+                  >Показывать деактивированные</label
+                >
+              </div>
+              <div>
+                <button id="createDirectorBtn" class="btn btn-primary">
+                  Создать
+                </button>
+              </div>
+            </div>
+            <div id="directorsList" class="list-group">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bg-dark text-white py-2 text-center mt-4">
+      <div class="container">
+        <small>Персонал и объекты</small>
+      </div>
+    </footer>
+
+    <script src="/static/js/ui_helpers.js"></script>
+    <script src="/static/js/personnel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

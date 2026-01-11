@@ -69,6 +69,16 @@ app.include_router(
     tags=["users"],
 )
 
+
+@app.get('/personnel')
+async def personnel_page(request: Request):
+    return templates.TemplateResponse('personnel.html', {"request": request, "title": "Персонал и объекты"})
+
+
+@app.get('/director')
+async def director_page(request: Request):
+    return templates.TemplateResponse('director_dashboard.html', {"request": request, "title": "Панель директора склада"})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host=HOST, reload=True, log_level="info")

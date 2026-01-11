@@ -60,7 +60,7 @@ async def create_owner(owner_data: sch.OwnerCreate, session: AsyncSession = Depe
     return new_owner
 
 @router.get("", response_model=List[sch.OwnerRead])
-async def read_owners(session: AsyncSession = Depends(get_async_session),  user: User = Depends(superuser_required)):
+async def read_owners(session: AsyncSession = Depends(get_async_session),  user: User = Depends(current_user)):
     query = select(owner)
     result = await session.execute(query)
     owners = result.mappings().all()

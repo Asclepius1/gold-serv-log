@@ -1,42 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <title>{{ title }}</title>
-</head>
-<body class='vh-100'>
+  </head>
+  <body class="vh-100">
     <header class="bg-light py-3 shadow-sm">
-        <div class="container d-flex justify-content-between align-items-center">
-            <div class="logo text-primary fw-bold"><img alt="Логотип" class="img-fluid" style="max-width: 100px;" src="/static/img/logo.jpg"></div>
-            <nav class="nav">
-                <!-- <a class="nav-link text-dark" href="#home">Главная</a> -->
-                <!-- <a class="nav-link text-dark" href="#contacts">Контакты</a> -->
-            </nav>
-            <button id="login-btn" class="btn btn-primary">Войти</button>
+      <div class="container d-flex justify-content-between align-items-center">
+        <div class="logo text-primary fw-bold">
+          <img
+            alt="Логотип"
+            class="img-fluid"
+            style="max-width: 100px"
+            src="/static/img/logo.jpg"
+          />
         </div>
+        <nav class="nav">
+          <!-- <a class="nav-link text-dark" href="#home">Главная</a> -->
+          <!-- <a class="nav-link text-dark" href="#contacts">Контакты</a> -->
+        </nav>
+        <button id="login-btn" class="btn btn-primary">Войти</button>
+      </div>
     </header>
 
     <main class="py-5 vh-75 d-flex flex-column justify-content-center">
-        <div class="container text-center">
-            <h1 class="display-4 text-dark">Добро пожаловать в личный кабинет!</h1>
-            <!-- <p class="lead text-secondary">Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugit molestiae repudiandae, nam dicta beatae distinctio, incidunt aspernatur pariatur nisi magnam libero omnis voluptatem, assumenda iste! Repellendus aspernatur dolorum provident illum.</p> -->
-            <!-- <button class="btn btn-success">Узнать больше</button> -->
-        </div>
+      <div class="container text-center">
+        <h1 class="display-4 text-dark">Добро пожаловать в личный кабинет!</h1>
+        <!-- <p class="lead text-secondary">Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugit molestiae repudiandae, nam dicta beatae distinctio, incidunt aspernatur pariatur nisi magnam libero omnis voluptatem, assumenda iste! Repellendus aspernatur dolorum provident illum.</p> -->
+        <!-- <button class="btn btn-success">Узнать больше</button> -->
+      </div>
     </main>
 
     <footer class="bg-dark text-white py-2 text-center">
-        <div class="container">
-            <p class="mb-1" style="font-size: 0.9rem;">Контакты</p>
-            <p class="mb-1" style="font-size: 0.9rem;">+7 701 971 32 22</p>
-            <a href="mailto:logisticgoldservice@gmail.com" class="text-white text-decoration-none" style="font-size: 0.9rem;">logisticgoldservice@gmail.com</a>
-        </div>
+      <div class="container">
+        <p class="mb-1" style="font-size: 0.9rem">Контакты</p>
+        <p class="mb-1" style="font-size: 0.9rem">+7 701 971 32 22</p>
+        <a
+          href="mailto:logisticgoldservice@gmail.com"
+          class="text-white text-decoration-none"
+          style="font-size: 0.9rem"
+          >logisticgoldservice@gmail.com</a
+        >
+      </div>
     </footer>
 
     <!-- Подключение Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/ui_helpers.js"></script>
     <script src="/static/js/script.js"></script>
-</body>
+  </body>
 </html>

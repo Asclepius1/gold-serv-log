@@ -13,6 +13,8 @@ class OwnerRead(OwnerBase):
 class OwnerCreate(OwnerBase):
     pass
 
+class EmployeeAssignmentUpdate(BaseModel):
+    owner_id: Optional[int] = None
 class ReportCreate(BaseModel):
     name: str
     param: str

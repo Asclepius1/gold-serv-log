@@ -1,64 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <title>{{ title }}</title>
-</head>
-<body class='vh-100'>
+  </head>
+  <body class="vh-100">
     <header class="bg-light py-3 shadow-sm">
-        <div class="container d-flex justify-content-between align-items-center">
-            <div class="logo text-primary fw-bold"><img alt="Логотип" class="img-fluid" style="max-width: 100px;" src="/static/img/logo.jpg"></div>
-            <nav class="nav">
-                <!-- <a class="nav-link text-dark" href="#home">Главная</a>
-                <a class="nav-link text-dark" href="#contacts">Контакты</a> -->
-            </nav>
+      <div class="container d-flex justify-content-between align-items-center">
+        <div class="logo text-primary fw-bold">
+          <img
+            alt="Логотип"
+            class="img-fluid"
+            style="max-width: 100px"
+            src="/static/img/logo.jpg"
+          />
         </div>
+        <nav class="nav">
+          <!-- <a class="nav-link text-dark" href="#home">Главная</a>
+                <a class="nav-link text-dark" href="#contacts">Контакты</a> -->
+        </nav>
+      </div>
     </header>
 
-    <main class="" >
-        <div class="container" style="top: 0px; height: 80%; max-height: 500px; overflow: auto; position:relative;">
-            <div class="" id="fileBtns">
-                <div class="d-flex justify-content-between flex-row-reverse">
-                    <!-- <button class="btn btn-secondary mb-2 align-self-end" id="backBtn">⬅ Назад</button> -->
-                    <div class="d-flex flex-column align-items-center" id="reloadItems">
-                        <span id="timeRemaining_0" timer>-</span>
-                        <button class="btn btn-secondary mb-2" id="reloadBtn" disabled >🔄 Обновить <span id="attempts_0">-</span></button>
-                    </div>
-                </div>
+    <main class="">
+      <div
+        class="container"
+        style="
+          top: 0px;
+          height: 80%;
+          max-height: 500px;
+          overflow: auto;
+          position: relative;
+        "
+      >
+        <div class="" id="fileBtns">
+          <div class="d-flex justify-content-between flex-row-reverse">
+            <!-- <button class="btn btn-secondary mb-2 align-self-end" id="backBtn">⬅ Назад</button> -->
+            <div class="d-flex flex-column align-items-center" id="reloadItems">
+              <span id="timeRemaining_0" timer>-</span>
+              <button class="btn btn-secondary mb-2" id="reloadBtn" disabled>
+                🔄 Обновить <span id="attempts_0">-</span>
+              </button>
             </div>
-            <table class="table table-hover table-bordered" >
-                <thead class="table-light">
-                    <tr>
-                        <th>Имя</th>
-                        <th style="width: 250px;">Дата загрузки</th>
-                        <th style="width: 120px;">Действие</th>
-                    </tr>
-                </thead>
-                <tbody id="fileTable">
-                    <div id="spinner" style="display: none; position: absolute; top: 200px" class="container">
-                        <div  class="d-flex justify-content-center">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Загрузка...</span>
-                            </div>
-                        </div>
-                    </div>
-                </tbody>
-            </table>
+          </div>
         </div>
+        <table class="table table-hover table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Имя</th>
+              <th style="width: 250px">Дата загрузки</th>
+              <th style="width: 120px">Действие</th>
+            </tr>
+          </thead>
+          <tbody id="fileTable">
+            <div
+              id="spinner"
+              style="display: none; position: absolute; top: 200px"
+              class="container"
+            >
+              <div class="d-flex justify-content-center">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Загрузка...</span>
+                </div>
+              </div>
+            </div>
+          </tbody>
+        </table>
+      </div>
     </main>
 
     <footer class="bg-dark text-white py-2 text-center">
-        <div class="container">
-            <p class="mb-1" style="font-size: 0.9rem;">Контакты</p>
-            <p class="mb-1" style="font-size: 0.9rem;">+7 701 971 32 22</p>
-            <a href="mailto:logisticgoldservice@gmail.com" class="text-white text-decoration-none" style="font-size: 0.9rem;">logisticgoldservice@gmail.com</a>
-        </div>
+      <div class="container">
+        <p class="mb-1" style="font-size: 0.9rem">Контакты</p>
+        <p class="mb-1" style="font-size: 0.9rem">+7 701 971 32 22</p>
+        <a
+          href="mailto:logisticgoldservice@gmail.com"
+          class="text-white text-decoration-none"
+          style="font-size: 0.9rem"
+          >logisticgoldservice@gmail.com</a
+        >
+      </div>
     </footer>
 
+    <script src="/static/js/ui_helpers.js"></script>
     <script src="/static/js/external.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+  </body>
 </html>

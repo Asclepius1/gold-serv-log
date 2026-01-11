@@ -146,11 +146,18 @@ def get_current_data(data: list[dict], last_log: dict) -> list[dict]:
 
     
 async def run_add_logs():
-    await _add_logs_wrapper()
+    try:
+        await _add_logs_wrapper()
+    except Exception as e:
+        # Log error but don't crash scheduler
+        print(f"Error in run_add_logs: {e}")
 
 async def _add_logs_wrapper():
-    async for session in get_async_session():
-        await add_logs(session=session)
+    try:
+        async for session in get_async_session():
+            await add_logs(session=session)
+    except Exception as e:
+        print(f"Error in _add_logs_wrapper: {e}")
 
 
 async def get_error_mapping_check_error(session: AsyncSession):
@@ -308,20 +315,20 @@ async def add_logs(
 
     # Выполняем запрос к серверу
     headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
-    async with httpx.AsyncClient(verify=False) as client:
-        try:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise HTTPException(
-                status_code=exc.response.status_code,
-                detail=f"Ошибка HTTP: {exc.response.status_code}, текст ответа: {exc.response.text}",
-            )
-        except httpx.RequestError as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Не удалось подключиться к серверу: {exc}",
-            )
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                print(f"HTTP Error: {exc.response.status_code} - {exc.response.text}")
+                return {"message": f"Ошибка при подключении к серверу логов: {exc.response.status_code}"}
+            except httpx.RequestError as exc:
+                print(f"Connection error: {exc}")
+                return {"message": f"Не удалось подключиться к серверу логов: {exc}"}
+    except Exception as exc:
+        print(f"Unexpected error in add_logs: {exc}")
+        return {"message": "Ошибка при получении логов"}
 
     # Обрабатываем данные
     data: list[dict] = response.json()

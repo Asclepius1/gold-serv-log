@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import JSON, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
+from sqlalchemy import JSON, Date, DateTime, MetaData, Column, String, Integer, Table, Boolean, ForeignKey
 
 metadata = MetaData()
 
@@ -79,4 +79,104 @@ owner_report_access = Table(
     Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='CASCADE')),  # ID пользователя
     Column("report_id", Integer, ForeignKey(reports.c.id, ondelete='CASCADE')),  # ID ссылки
     Column("is_disabled", Boolean, default=False),  # Флаг отключения ссылки для пользователя
+)
+
+locations = Table(
+    "locations",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("location_name", String, unique=True, index=True),
+    Column("created_at", DateTime, default=datetime.now),
+    Column("is_active", Boolean, default=True),
+)
+
+# Таблица для хранения записи о смене (день) для каждой локации.
+# Каждая запись привязывается к конкретной дате и флагу `finalized` —
+# после установки которого изменения для этой локации и даты запрещены.
+location_days = Table(
+    "location_days",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("location_id", Integer, ForeignKey(locations.c.id, ondelete='CASCADE')),
+    Column("day", Date, index=True),
+    Column("finalized", Boolean, default=False),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+# Таблица связи: какие owners назначены на конкретную локацию в конкретный день.
+location_day_owners = Table(
+    "location_day_owners",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("location_day_id", Integer, ForeignKey(location_days.c.id, ondelete='CASCADE')),
+    Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='CASCADE')),
+)
+
+# Сотрудники: базовая информация и статус (уволен или нет).
+employees = Table(
+    "employees",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("name", String, index=True),
+    Column("is_active", Boolean, default=True),
+    Column("terminated_at", DateTime, nullable=True),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+# История привязки сотрудника к owner по дням. Одна запись = один день, один owner.
+employee_days = Table(
+    "employee_days",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("employee_id", Integer, ForeignKey(employees.c.id, ondelete='CASCADE')),
+    Column("day", Date, index=True),
+    Column("owner_id", Integer, ForeignKey(owner.c.id, ondelete='SET NULL'), nullable=True),
+    Column("finalized", Boolean, default=False),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+# Роль директор склада: привязка user -> location
+warehouse_directors = Table(
+    "warehouse_directors",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey(user.c.id, ondelete='CASCADE')),
+    Column("location_id", Integer, ForeignKey(locations.c.id, ondelete='CASCADE')),
+    Column("created_at", DateTime, default=datetime.now),
+    Column("is_active", Boolean, default=True),
+)
+
+# История привязки директоров к складам по дням.
+# Записывает, на каком складе был директор в каждый день.
+warehouse_directors_history = Table(
+    "warehouse_directors_history",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey(user.c.id, ondelete='CASCADE')),
+    Column("location_id", Integer, ForeignKey(locations.c.id, ondelete='CASCADE')),
+    Column("day", Date, index=True),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+# Статистика по локации за день, управляемая директором склада
+location_day_stats = Table(
+    "location_day_stats",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("location_day_id", Integer, ForeignKey(location_days.c.id, ondelete='CASCADE'), unique=True),
+    Column("arrived_actual", Integer, default=0),
+    Column("expected", Integer, default=0),
+    Column("outsourcing", Integer, default=0),
+    Column("overtime", Integer, default=0),
+    Column("lunch", Integer, default=0),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+# HR role mapping: which users are HRs
+hrs = Table(
+    "hrs",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey(user.c.id, ondelete='CASCADE')),
+    Column("created_at", DateTime, default=datetime.now),
 )

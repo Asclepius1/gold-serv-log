@@ -55,14 +55,25 @@ async function loadWorkers() {
       const el = document.createElement("div");
       el.className =
         "list-group-item d-flex justify-content-between align-items-center";
-      const status = w.is_active
-        ? ""
-        : '<span class="badge bg-secondary ms-2">уволен</span>';
+      
+      // Формируем статус и дату увольнения/возвращения
+      let statusHtml = "";
+      if (!w.is_active) {
+        statusHtml = '<span class="badge bg-secondary ms-2">уволен</span>';
+        if (w.terminated_at) {
+          const terminatedDate = new Date(w.terminated_at).toLocaleDateString('ru-RU');
+          statusHtml += `<small class="text-muted ms-2">(${terminatedDate})</small>`;
+        }
+      } else if (w.rehired_at) {
+        const rehiredDate = new Date(w.rehired_at).toLocaleDateString('ru-RU');
+        statusHtml = `<small class="text-muted ms-2">Возвращен: ${rehiredDate}</small>`;
+      }
+      
       el.innerHTML = `<div class="flex-grow-1 me-3 text-truncate"><strong title="${escapeHtml(
         w.name
       )}">${escapeHtml(w.name)}</strong> <small class="text-muted">#${
         w.id
-      }</small> ${status}</div><div>`;
+      }</small> ${statusHtml}</div><div>`;
       const btns = [];
       if (w.is_active) {
         btns.push(

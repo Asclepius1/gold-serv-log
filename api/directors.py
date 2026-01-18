@@ -418,21 +418,45 @@ async def director_dashboard(session: AsyncSession = Depends(get_async_session),
             # (то есть owner_id должен быть не null и быть в списке владельцев)
             owner_ids = [o['id'] for o in owners_list]
             if owner_ids:
-                q_emps = select(employees.c.id, employees.c.name, employee_days.c.owner_id).select_from(
+                q_emps = select(
+                    employees.c.id, 
+                    employees.c.name, 
+                    employees.c.terminated_at,
+                    employee_days.c.owner_id
+                ).select_from(
                     employee_days.join(employees, employee_days.c.employee_id == employees.c.id)
                 ).where(
                     employee_days.c.day == day,
                     employee_days.c.owner_id.in_(owner_ids)
                 )
             else:
-                q_emps = select(employees.c.id, employees.c.name, employee_days.c.owner_id).select_from(
+                q_emps = select(
+                    employees.c.id, 
+                    employees.c.name, 
+                    employees.c.terminated_at,
+                    employee_days.c.owner_id
+                ).select_from(
                     employee_days.join(employees, employee_days.c.employee_id == employees.c.id)
                 ).where(
                     employee_days.c.day == day,
                     employee_days.c.owner_id == None  # Пусто если владельцев нет
                 )
             r_emps = await session.execute(q_emps)
-            employees_by_day[str(day)] = [dict(row._mapping) for row in r_emps.fetchall()]
+            emps_list = []
+            for row in r_emps.fetchall():
+                emp_dict = dict(row._mapping)
+                # Проверяем, был ли сотрудник уволнен на эту дату
+                terminated_at = emp_dict.get('terminated_at')
+                is_fired_today = False
+                if terminated_at:
+                    from datetime import datetime as _dt
+                    terminated_date = terminated_at.date() if isinstance(terminated_at, _dt) else terminated_at
+                    if terminated_date == day:
+                        is_fired_today = True
+                emp_dict['is_fired_today'] = is_fired_today
+                emp_dict['terminated_at'] = str(terminated_at) if terminated_at else None
+                emps_list.append(emp_dict)
+            employees_by_day[str(day)] = emps_list
         else:
             employees_by_day[str(day)] = []
     

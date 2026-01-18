@@ -30,13 +30,21 @@ async function loadUsers() {
     users.forEach((user) => {
       const owner = owners.find((item) => item.id === user.owners_id);
       const ownerName = owner ? owner.name : null;
+      
+      // Определяем роль пользователя
+      let role = "Пользователь";
+      if (user.is_superuser) {
+        role = "Администратор";
+      } else if (user.is_hr) {
+        role = "HR";
+      }
 
       const row = document.createElement("tr");
       row.innerHTML = `
                 <td>${user.id}</td>
                 <td>${user.email}</td>
                 <td>${user.name}</td>
-                <td>${user.is_superuser ? "Да" : "Нет"}</td>
+                <td>${role}</td>
                 <td>${ownerName}</td>
                 <td>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdropUserEdit" onclick="editUser(${
@@ -209,11 +217,22 @@ async function addNewUser() {
   const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  const owner = document
-    .getElementById("dropdownAddOwner")
-    .getAttribute("owner-id");
+  const role = document.getElementById("role").value || "user";
+  const owner = document.getElementById("dropdownAddOwner").getAttribute("owner-id");
+  
+  // Валидация: владелец обязателен только для обычных пользователей
+  if (role === "user" && !owner) {
+    const errorMessage = document.getElementById("error-message");
+    errorMessage.style.display = "block";
+    errorMessage.textContent = "Владелец обязателен для обычных пользователей!";
+    return;
+  }
+  
   if (name && email && password) {
     try {
+      const isAdmin = role === "admin";
+      const isHr = role === "hr";
+      
       const response = await fetch("/auth/register", {
         method: "POST",
         headers: {
@@ -222,12 +241,22 @@ async function addNewUser() {
         body: JSON.stringify({
           email: email,
           name: name,
-          owners_id: owner,
+          owners_id: owner || null,
           password: password,
+          is_superuser: isAdmin,
+          is_hr: isHr,
         }),
       });
 
       if (response.ok) {
+        // Очищаем форму
+        document.getElementById("name").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("role").value = "user";
+        document.getElementById("dropdownAddOwner").setAttribute("owner-id", "");
+        document.getElementById("error-message").style.display = "none";
+        
         window.location.reload();
       } else {
         throw new Error("Ошибка регистраций");
@@ -244,6 +273,22 @@ async function addNewUser() {
     errorMessage.style.display = "block";
     errorMessage.textContent =
       "Некоторые поля остались пустыми, прошу заполнить и попробовать еще раз!";
+  }
+}
+
+// Функция для переключения видимости поля владельца
+function toggleOwnerField() {
+  const role = document.getElementById("role").value;
+  const ownerContainer = document.getElementById("ownerContainer");
+  const dropdownAddOwner = document.getElementById("dropdownAddOwner");
+  
+  if (role === "user") {
+    // Для обычных пользователей показываем владельца и отмечаем как обязательный
+    ownerContainer.style.display = "block";
+  } else {
+    // Для админа и HR скрываем владельца
+    ownerContainer.style.display = "none";
+    dropdownAddOwner.setAttribute("owner-id", "");
   }
 }
 

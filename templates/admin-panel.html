@@ -48,7 +48,7 @@
                             <th scope="col">ID</th>
                             <th scope="col">Почта</th>
                             <th scope="col">Имя</th>
-                            <th scope="col">Суперпользователь</th>
+                            <th scope="col">Роль</th>
                             <th scope="col">Владелец</th>
                             <th scope="col">Действие</th>
                         </tr>
@@ -447,7 +447,15 @@
                     <input type="text" class="form-control" id="password" placeholder="Введите пароль" required>
                 </div>
                 <div class="mb-3">
-                    <label for="email" class="form-label">Владелец</label>
+                    <label for="role" class="form-label">Роль</label>
+                    <select class="form-select" id="role" onchange="toggleOwnerField()">
+                        <option value="user" selected>Пользователь (обычный)</option>
+                        <option value="hr">HR специалист</option>
+                        <option value="admin">Администратор</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="ownerContainer">
+                    <label for="email" class="form-label">Владелец <span style="color: red;">*</span></label>
                     <div class="dropdown">
                         <button class="btn btn-warning dropdown-toggle w-25" type="button" id="dropdownAddOwner" owner-id="" data-bs-toggle="dropdown" aria-expanded="false">
                         </button>

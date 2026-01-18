@@ -120,6 +120,7 @@ employees = Table(
     Column("name", String, index=True),
     Column("is_active", Boolean, default=True),
     Column("terminated_at", DateTime, nullable=True),
+    Column("rehired_at", DateTime, nullable=True),
     Column("created_at", DateTime, default=datetime.now),
 )
 

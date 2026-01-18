@@ -1,12 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from models.models import hrs, warehouse_directors
+from models.models import warehouse_directors
+from auth.db import User
 
 
 async def is_hr(session: AsyncSession, user_id: int) -> bool:
-    q = select(hrs).where(hrs.c.user_id == user_id)
+    q = select(User).where(User.id == user_id)
     res = await session.execute(q)
-    return res.fetchone() is not None
+    user = res.scalars().first()
+    return user.is_hr if user else False
 
 
 async def get_director_location(session: AsyncSession, user_id: int):

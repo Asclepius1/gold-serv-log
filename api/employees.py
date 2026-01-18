@@ -186,7 +186,12 @@ async def terminate_employee(employee_id: int, terminate_at: Optional[str] = Que
     if emp is None:
         raise HTTPException(status_code=404, detail="Сотрудник не найден")
 
-    await session.execute(employees.update().where(employees.c.id == employee_id).values(is_active=False, terminated_at=t_date))
+    # При увольнении: устанавливаем дату увольнения и очищаем дату возвращения
+    await session.execute(employees.update().where(employees.c.id == employee_id).values(
+        is_active=False, 
+        terminated_at=t_date,
+        rehired_at=None
+    ))
     await session.commit()
     return {"employee_id": employee_id, "terminated_at": t_date.isoformat()}
 
@@ -197,11 +202,8 @@ async def list_employees(day: Optional[str] = Query(None), location_id: Optional
     from api.utils import is_hr
     if not (getattr(user, 'is_superuser', False) or await is_hr(session, user.id)):
         raise HTTPException(status_code=403, detail='Нет доступа')
-    # Сформируем список сотрудников и их owner на запрошную дату
-    q = select(employees.c.id, employees.c.name)
-    r = await session.execute(q)
-    emps = [dict(row._mapping) for row in r.fetchall()]
-
+    
+    # Определяем дату для проверки активности сотрудников
     d = None
     if day:
         try:
@@ -210,9 +212,33 @@ async def list_employees(day: Optional[str] = Query(None), location_id: Optional
         except Exception:
             d = None
     else:
-        # If day is not provided, use today
         from datetime import datetime as _dt
         d = _dt.now().date()
+    
+    # Получаем только активных сотрудников на эту дату
+    # Сотрудник активен, если:
+    # 1. is_active = True И
+    # 2. (terminated_at = NULL ИЛИ terminated_at > дата)
+    q = select(employees.c.id, employees.c.name, employees.c.terminated_at).where(
+        employees.c.is_active == True
+    )
+    r = await session.execute(q)
+    
+    # Фильтруем по дате увольнения на клиенте
+    emps = []
+    for row in r.fetchall():
+        row_dict = dict(row._mapping)
+        terminated_at = row_dict.get('terminated_at')
+        
+        # Если сотрудник был уволен ДО этой даты, пропускаем его
+        if terminated_at:
+            from datetime import datetime as _dt
+            terminated_date = terminated_at.date() if isinstance(terminated_at, _dt) else terminated_at
+            if d and terminated_date <= d:
+                # Сотрудник был уволен ДО или В эту дату, значит он не активен
+                continue
+        
+        emps.append({"id": row_dict['id'], "name": row_dict['name']})
 
     results = []
     for e in emps:
@@ -243,7 +269,7 @@ async def list_employees(day: Optional[str] = Query(None), location_id: Optional
                     owner_name = o.name if o else None
         results.append({"id": e['id'], "name": e['name'], "owner_id": owner_id, "owner_name": owner_name})
 
-    # NOTE: We show ALL employees regardless of location_id.
+    # NOTE: We show ALL active employees regardless of location_id.
     # location_id parameter is used for context but does not filter results.
     # This allows viewing all employees and assigning them to owners for a specific location.
 
@@ -253,7 +279,9 @@ async def list_employees(day: Optional[str] = Query(None), location_id: Optional
 @router.post("/init-day/{day}")
 async def init_employee_day(day: str, session: AsyncSession = Depends(get_async_session), user=Depends(current_user)):
     """Инициализирует данные работников на заданный день на основе предыдущего дня.
-    Если для работника нет записи на этот день, копируется привязка с предыдущего дня."""
+    Если для работника нет записи на этот день, копируется привязка с предыдущего дня.
+    Не копирует данные для сотрудников, которые были уволены ДО целевого дня.
+    Удаляет привязку сотрудника если он был уволен ДО целевого дня (но не в день увольнения)."""
     
     # Доступ: superuser или HR
     if not (getattr(user, 'is_superuser', False) or await is_hr(session, user.id)):
@@ -266,13 +294,55 @@ async def init_employee_day(day: str, session: AsyncSession = Depends(get_async_
     
     prev_day = target_day - timedelta(days=1)
     
-    # Получаем всех активных работников
+    # Получаем всех активных работников, которые НЕ уволены на целевой день
     q_emps = select(employees).where(employees.c.is_active == True)
     res_emps = await session.execute(q_emps)
     
     count_copied = 0
+    count_removed = 0
+    
     for emp_row in res_emps.fetchall():
         emp_id = emp_row.id
+        
+        # Пропускаем, если сотрудник был уволен ДО целевой дня
+        if emp_row.terminated_at:
+            terminated_date = emp_row.terminated_at.date() if isinstance(emp_row.terminated_at, datetime) else emp_row.terminated_at
+            if terminated_date < target_day:
+                # Сотрудник был уволен раньше целевого дня
+                # Удаляем его привязку если есть
+                await session.execute(
+                    delete(employee_days).where(
+                        employee_days.c.employee_id == emp_id,
+                        employee_days.c.day == target_day
+                    )
+                )
+                count_removed += 1
+                continue
+            elif terminated_date == target_day:
+                # Сотрудник уволен ВО целевой день
+                # Проверяем есть ли привязка на день увольнения
+                q_check = select(employee_days).where(
+                    employee_days.c.employee_id == emp_id,
+                    employee_days.c.day == target_day
+                )
+                res_check = await session.execute(q_check)
+                if res_check.fetchone() is None:
+                    # Если нет привязки, копируем с предыдущего дня
+                    q_prev = select(employee_days).where(
+                        employee_days.c.employee_id == emp_id,
+                        employee_days.c.day == prev_day
+                    )
+                    res_prev = await session.execute(q_prev)
+                    prev_ed = res_prev.fetchone()
+                    if prev_ed:
+                        ins = employee_days.insert().values(
+                            employee_id=emp_id,
+                            day=target_day,
+                            owner_id=prev_ed.owner_id,
+                            finalized=False
+                        )
+                        await session.execute(ins)
+                continue
         
         # Проверяем, есть ли запись на целевой день
         q_target = select(employee_days).where(
@@ -302,4 +372,4 @@ async def init_employee_day(day: str, session: AsyncSession = Depends(get_async_
                 count_copied += 1
     
     await session.commit()
-    return {"day": str(target_day), "records_copied": count_copied}
+    return {"day": str(target_day), "records_copied": count_copied, "records_removed": count_removed}

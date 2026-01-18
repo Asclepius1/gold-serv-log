@@ -14,17 +14,15 @@ from auth.auth import current_user
 router = APIRouter(prefix="/hr_admin", tags=["hr_admin"])
 
 
-async def assert_hr_or_super(session: AsyncSession, user_obj):
-    if getattr(user_obj, 'is_superuser', False):
-        return True
-    if await is_hr(session, user_obj.id):
-        return True
-    raise HTTPException(status_code=403, detail="Нет доступа")
+async def assert_superuser_only(user_obj):
+    """Проверка: пользователь должен быть суперпользователем. HR не может использовать эти endpoints."""
+    if not getattr(user_obj, 'is_superuser', False):
+        raise HTTPException(status_code=403, detail="Нет доступа. Эти функции доступны только для администраторов.")
 
 
 @router.get('/employees')
 async def list_employees_admin(show_inactive: bool = False, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     if show_inactive:
         q = select(employees.c.id, employees.c.name, employees.c.is_active, employees.c.terminated_at).where(employees.c.is_active == False)
     else:
@@ -36,7 +34,7 @@ async def list_employees_admin(show_inactive: bool = False, session: AsyncSessio
 
 @router.post('/employees')
 async def create_employee_admin(name: str, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     ins = insert(employees).values(name=name, is_active=True)
     res = await session.execute(ins)
     await session.commit()
@@ -45,7 +43,7 @@ async def create_employee_admin(name: str, session: AsyncSession = Depends(get_a
 
 @router.put('/employees/{employee_id}')
 async def update_employee_admin(employee_id: int, name: Optional[str] = None, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     if name is None:
         raise HTTPException(status_code=400, detail="No fields to update")
     await session.execute(update(employees).where(employees.c.id == employee_id).values(name=name))
@@ -55,24 +53,35 @@ async def update_employee_admin(employee_id: int, name: Optional[str] = None, se
 
 @router.post('/employees/{employee_id}/fire')
 async def fire_employee_admin(employee_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     from datetime import datetime
-    await session.execute(update(employees).where(employees.c.id == employee_id).values(is_active=False, terminated_at=datetime.utcnow()))
+    # Устанавливаем дату увольнения сегодня, если уволен раньше то обновляем дату
+    await session.execute(update(employees).where(employees.c.id == employee_id).values(
+        is_active=False, 
+        terminated_at=datetime.utcnow(),
+        rehired_at=None  # Очищаем дату возвращения при новом увольнении
+    ))
     await session.commit()
     return {"fired": employee_id}
 
 
 @router.post('/employees/{employee_id}/reactivate')
 async def reactivate_employee_admin(employee_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
-    await session.execute(update(employees).where(employees.c.id == employee_id).values(is_active=True, terminated_at=None))
+    assert_superuser_only(user_obj)
+    from datetime import datetime
+    # При возврате устанавливаем дату возвращения и очищаем дату увольнения
+    await session.execute(update(employees).where(employees.c.id == employee_id).values(
+        is_active=True, 
+        terminated_at=None,
+        rehired_at=datetime.utcnow()
+    ))
     await session.commit()
     return {"reactivated": employee_id}
 
 
 @router.get('/locations')
 async def list_locations_admin(show_inactive: bool = False, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     if show_inactive:
         q = select(locations.c.id, locations.c.location_name, locations.c.is_active).where(locations.c.is_active == False)
     else:
@@ -84,7 +93,7 @@ async def list_locations_admin(show_inactive: bool = False, session: AsyncSessio
 
 @router.post('/locations')
 async def create_location_admin(location_name: str, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(insert(locations).values(location_name=location_name, is_active=True))
     await session.commit()
     return {"created": location_name}
@@ -92,7 +101,7 @@ async def create_location_admin(location_name: str, session: AsyncSession = Depe
 
 @router.put('/locations/{location_id}')
 async def update_location_admin(location_id: int, location_name: str, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(update(locations).where(locations.c.id == location_id).values(location_name=location_name))
     await session.commit()
     return {"updated": location_id}
@@ -100,7 +109,7 @@ async def update_location_admin(location_id: int, location_name: str, session: A
 
 @router.delete('/locations/{location_id}')
 async def delete_location_admin(location_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(update(locations).where(locations.c.id == location_id).values(is_active=False))
     await session.commit()
     return {"deactivated": location_id}
@@ -108,7 +117,7 @@ async def delete_location_admin(location_id: int, session: AsyncSession = Depend
 
 @router.post('/locations/{location_id}/reactivate')
 async def reactivate_location_admin(location_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(update(locations).where(locations.c.id == location_id).values(is_active=True))
     await session.commit()
     return {"reactivated": location_id}
@@ -116,7 +125,7 @@ async def reactivate_location_admin(location_id: int, session: AsyncSession = De
 
 @router.get('/directors')
 async def list_directors_admin(show_inactive: bool = False, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     # Return directors with user name joined
     if show_inactive:
         q = select(warehouse_directors.c.user_id, warehouse_directors.c.location_id, warehouse_directors.c.is_active, user.c.name, user.c.email).select_from(
@@ -133,7 +142,7 @@ async def list_directors_admin(show_inactive: bool = False, session: AsyncSessio
 
 @router.post('/directors')
 async def create_director_admin(user_id: int, location_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     # Проверим что пользователь существует
     q = select(user).where(user.c.id == user_id)
     r = await session.execute(q)
@@ -194,7 +203,7 @@ async def create_director_with_user(name: str, location_id: int, email: Optional
 
 @router.put('/directors/{user_id}/name')
 async def update_director_name(user_id: int, name: str, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(update(user).where(user.c.id == user_id).values(name=name))
     await session.commit()
     return {"updated": {"user_id": user_id, "name": name}}
@@ -202,7 +211,7 @@ async def update_director_name(user_id: int, name: str, session: AsyncSession = 
 
 @router.put('/directors/{user_id}')
 async def update_director_admin(user_id: int, location_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     await session.execute(update(warehouse_directors).where(warehouse_directors.c.user_id == user_id).values(location_id=location_id))
     # Record change in history with today's date
     today = date.today()
@@ -213,7 +222,7 @@ async def update_director_admin(user_id: int, location_id: int, session: AsyncSe
 
 @router.delete('/directors/{user_id}')
 async def delete_director_admin(user_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     # deactivate director mapping
     await session.execute(update(warehouse_directors).where(warehouse_directors.c.user_id == user_id).values(is_active=False))
     # also deactivate user account
@@ -224,7 +233,7 @@ async def delete_director_admin(user_id: int, session: AsyncSession = Depends(ge
 
 @router.post('/directors/{user_id}/reactivate')
 async def reactivate_director_admin(user_id: int, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     # reactivate mapping and user account
     await session.execute(update(warehouse_directors).where(warehouse_directors.c.user_id == user_id).values(is_active=True))
     await session.execute(update(user).where(user.c.id == user_id).values(is_active=True))
@@ -234,7 +243,7 @@ async def reactivate_director_admin(user_id: int, session: AsyncSession = Depend
 
 @router.put('/directors/{user_id}/credentials')
 async def update_director_credentials(user_id: int, email: Optional[str] = None, password: Optional[str] = None, name: Optional[str] = None, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    await assert_hr_or_super(session, user_obj)
+    assert_superuser_only(user_obj)
     values = {}
     if email is not None:
         email = str(email).strip().lower()

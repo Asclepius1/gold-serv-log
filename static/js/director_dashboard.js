@@ -94,9 +94,10 @@ function displayEmployeesByDay() {
   let employees = directorData.employees_by_day[currentDay] || [];
 
   // Фильтруем только работников, которые привязаны к владельцам директора
+  // ИЛИ которые были уволнены в этот день
   const ownerIds = new Set((directorData.owners || []).map((o) => o.id));
   employees = employees.filter(
-    (emp) => emp.owner_id && ownerIds.has(emp.owner_id)
+    (emp) => (emp.owner_id && ownerIds.has(emp.owner_id)) || emp.is_fired_today
   );
 
   if (employees.length === 0) {
@@ -108,25 +109,24 @@ function displayEmployeesByDay() {
   let html = `<div class="employees-grid">`;
 
   employees.forEach((emp) => {
-    const ownerName =
-      directorData.owners.find((o) => o.id == emp.owner_id)?.name ||
-      "Не назначен";
+    const isFiredToday = emp.is_fired_today === true;
+    const ownerName = !isFiredToday
+      ? (directorData.owners.find((o) => o.id == emp.owner_id)?.name ||
+          "Не назначен")
+      : "Уволнен";
+
+    // Проверяем, был ли сотрудник уволнен на эту дату
+    const cardClasses = isFiredToday ? "employee-card employee-card-fired" : "employee-card";
+    const firedBadge = isFiredToday ? '<span class="badge bg-danger ms-2">УВОЛЕН</span>' : "";
 
     html += `
-      <div class="employee-card">
+      <div class="${cardClasses}">
         <div class="employee-name">
-          <i class="bi bi-person"></i> ${escapeHtml(emp.name)}
+          <i class="bi bi-person"></i> ${escapeHtml(emp.name)} ${firedBadge}
         </div>
         <div class="employee-owner">
           ${escapeHtml(ownerName)}
         </div>
-        <!-- <div style="margin-top: 10px;">
-          <button class="btn btn-sm btn-info" onclick="showEmployeeHistory(${
-            emp.id
-          }, '${escapeHtml(emp.name)}')">
-            <i class="bi bi-clock-history"></i> История
-          </button>
-        </div> -->
       </div>
     `;
   });

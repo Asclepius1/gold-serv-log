@@ -15,8 +15,8 @@ class Base(DeclarativeBase):
 class User(SQLAlchemyBaseUserTable[int], Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(length=320), nullable=False)
-    owners_id: Mapped[str] = mapped_column(Integer, ForeignKey(owner.c.id), nullable=True)
-
+    owners_id: Mapped[int] = mapped_column(Integer, ForeignKey(owner.c.id), nullable=True)
+    is_hr: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):

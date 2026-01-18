@@ -35,14 +35,22 @@ async def director_required(user: User = Depends(current_user), session: AsyncSe
 
 
 async def admin_required(user: User = Depends(current_user), session: AsyncSession = Depends(get_async_session)) -> User:
-    """Проверка: пользователь должен быть суперпользователем или HR."""
+    """Проверка: пользователь должен быть суперпользователем (только админ)."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Требуется роль администратора.")
+    
+    return user
+
+
+async def hr_required(user: User = Depends(current_user), session: AsyncSession = Depends(get_async_session)) -> User:
+    """Проверка: пользователь должен быть HR или суперпользователем."""
+    # Суперпользователь (админ) может заходить на HR страницу
     if user.is_superuser:
         return user
     
-    # Проверяем, является ли пользователь HR
     is_hr_user = await is_hr(session, user.id)
     if not is_hr_user:
-        raise HTTPException(status_code=403, detail="Доступ запрещен. Требуется роль администратора.")
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Требуется роль HR.")
     
     return user
 
@@ -56,7 +64,11 @@ async def login(request: Request):
 
 @router.get('/internal', response_class=HTMLResponse)
 async def internal(request: Request, user: User = Depends(admin_required)):
-    return templates.TemplateResponse("internal.html", {"request": request, "title": "ВНУ"}) 
+    return templates.TemplateResponse("internal.html", {"request": request, "title": "ВНУ"})
+
+@router.get('/hr', response_class=HTMLResponse)
+async def hr_page(request: Request, user: User = Depends(hr_required)):
+    return templates.TemplateResponse("hr.html", {"request": request, "title": "HR — Панель управления", "is_admin": user.is_superuser})
 
 @router.get('/external', response_class=HTMLResponse)
 async def external(request: Request, user: User = Depends(current_user)):
@@ -67,14 +79,14 @@ async def external(request: Request, user: User = Depends(current_user)):
 async def dashboard(request: Request, user: User = Depends(current_user), session: AsyncSession = Depends(get_async_session)):
     """Маршрут для перенаправления на нужную страницу в зависимости от роли пользователя."""
     
-    # Сначала проверяем, является ли пользователь администратором (superuser или HR)
+    # Сначала проверяем, является ли пользователь администратором (superuser)
     if user.is_superuser:
         return RedirectResponse(url="/internal", status_code=302)
     
     # Проверяем, является ли пользователь HR
     is_hr_user = await is_hr(session, user.id)
     if is_hr_user:
-        return RedirectResponse(url="/internal", status_code=302)
+        return RedirectResponse(url="/hr", status_code=302)
     
     # Потом проверяем, является ли пользователь директором
     q = select(warehouse_directors).where(
@@ -83,6 +95,13 @@ async def dashboard(request: Request, user: User = Depends(current_user), sessio
     )
     r = await session.execute(q)
     director = r.fetchone()
+    
+    if director:
+        # Это директор склада - перенаправляем на его панель
+        return RedirectResponse(url="/director", status_code=302)
+    
+    # По умолчанию перенаправляем на внешнюю страницу
+    return RedirectResponse(url="/external", status_code=302)
     
     if director:
         # Это директор склада - перенаправляем на его панель

@@ -111,13 +111,17 @@ function displayEmployeesByDay() {
   employees.forEach((emp) => {
     const isFiredToday = emp.is_fired_today === true;
     const ownerName = !isFiredToday
-      ? (directorData.owners.find((o) => o.id == emp.owner_id)?.name ||
-          "Не назначен")
+      ? directorData.owners.find((o) => o.id == emp.owner_id)?.name ||
+        "Не назначен"
       : "Уволнен";
 
     // Проверяем, был ли сотрудник уволнен на эту дату
-    const cardClasses = isFiredToday ? "employee-card employee-card-fired" : "employee-card";
-    const firedBadge = isFiredToday ? '<span class="badge bg-danger ms-2">УВОЛЕН</span>' : "";
+    const cardClasses = isFiredToday
+      ? "employee-card employee-card-fired"
+      : "employee-card";
+    const firedBadge = isFiredToday
+      ? '<span class="badge bg-danger ms-2">УВОЛЕН</span>'
+      : "";
 
     html += `
       <div class="${cardClasses}">

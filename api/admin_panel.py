@@ -161,7 +161,7 @@ async def create_director_with_user(name: str, location_id: int, email: Optional
     """Create a new user account (login/password) and assign as warehouse director for location.
     Returns plain credentials so admin can pass them to the director.
     """
-    await assert_hr_or_super(session, user_obj)
+    
     # require email and password (they act as login credentials)
     if not email or not str(email).strip():
         raise HTTPException(status_code=400, detail="Email is required")

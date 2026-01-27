@@ -180,7 +180,7 @@ async def create_director_with_user(name: str, location_id: int, email: Optional
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     # Use RETURNING to reliably obtain new user id with async drivers
-    ins = insert(user).values(name=name, email=email, hashed_password=hashed, is_active=True, is_superuser=False, is_verified=False).returning(user.c.id)
+    ins = insert(user).values(name=name, email=email, hashed_password=hashed, is_active=True, is_superuser=False, is_verified=False, is_hr=False).returning(user.c.id)
     result = await session.execute(ins)
     try:
         new_id = result.scalar_one()

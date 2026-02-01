@@ -7,7 +7,7 @@ let myLocations = []; // Склады директора
 let currentLocationId = null; // Текущий выбранный склад
 
 document.addEventListener("DOMContentLoaded", async () => {
-  todayDate = new Date().toISOString().slice(0, 10);
+  todayDate = new Date().toLocaleDateString("en-CA").slice(0, 10);
   currentDay = todayDate;
   document.getElementById("dateNavigator").value = currentDay;
   document.getElementById("dateNavigator").max = todayDate;
@@ -184,8 +184,11 @@ async function switchLocation(locationId) {
 
   await selectLocation(locationId);
 
+  // Очищаем кэш статистики при смене склада
+  allStatsData = {};
+
   // Перезагружаем дашборд
-  loadDashboard();
+  await loadDashboard();
 }
 
 async function loadDashboard() {

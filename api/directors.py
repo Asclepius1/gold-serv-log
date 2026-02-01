@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional, Dict, Any
 from sqlalchemy import select, insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,19 +14,103 @@ from auth.db import User
 router = APIRouter(prefix="/directors", tags=["directors"])
 
 
-async def get_director_location(session: AsyncSession, user_id: int):
-    q = select(warehouse_directors).where(warehouse_directors.c.user_id == user_id)
+async def get_director_locations(session: AsyncSession, user_id: int):
+    """Получить все склады, привязанные к директору."""
+    q = select(warehouse_directors).where(
+        warehouse_directors.c.user_id == user_id,
+        warehouse_directors.c.is_active == True
+    )
+    r = await session.execute(q)
+    return r.fetchall()
+
+
+async def get_director_location(session: AsyncSession, user_id: int, location_id: int = None):
+    """Получить конкретную локацию директора. Если location_id не передан - первую."""
+    if location_id:
+        q = select(warehouse_directors).where(
+            warehouse_directors.c.user_id == user_id,
+            warehouse_directors.c.location_id == location_id,
+            warehouse_directors.c.is_active == True
+        )
+    else:
+        q = select(warehouse_directors).where(
+            warehouse_directors.c.user_id == user_id,
+            warehouse_directors.c.is_active == True
+        ).limit(1)
     r = await session.execute(q)
     wd = r.fetchone()
     return wd
 
 
+@router.get("/my/locations")
+async def get_my_locations(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Получить все склады текущего директора."""
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
+        return {"locations": [], "needs_selection": False}
+    
+    # Получаем location_id из cookie или используем первый
+    location_id = None
+    cookie_location_id = request.cookies.get("director_location_id")
+    if cookie_location_id:
+        try:
+            cookie_location_id = int(cookie_location_id)
+            for wd in wd_list:
+                if wd.location_id == cookie_location_id:
+                    location_id = cookie_location_id
+                    break
+        except (ValueError, TypeError):
+            pass
+    
+    needs_selection = location_id is None
+    
+    # Получаем информацию о локациях
+    location_ids = [wd.location_id for wd in wd_list]
+    q = select(locations).where(locations.c.id.in_(location_ids))
+    r = await session.execute(q)
+    locs = r.fetchall()
+    
+    return {
+        "locations": [dict(loc._mapping) for loc in locs],
+        "needs_selection": needs_selection
+    }
+
+
 @router.get("/me")
-async def director_me(session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    # Проверяем, к какому складу привязан текущий пользователь
-    wd = await get_director_location(session, user_obj.id)
-    if wd is None:
+async def director_me(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session), 
+    user_obj=Depends(current_user)
+):
+    # Получаем все склады директора
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
         raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
+    
+    # Получаем location_id из cookie или используем первый
+    location_id = None
+    cookie_location_id = request.cookies.get("director_location_id")
+    if cookie_location_id:
+        try:
+            cookie_location_id = int(cookie_location_id)
+            for wd in wd_list:
+                if wd.location_id == cookie_location_id:
+                    location_id = cookie_location_id
+                    break
+        except (ValueError, TypeError):
+            pass
+    
+    if location_id is None:
+        location_id = wd_list[0].location_id
+    
+    # Проверяем что выбранный склад привязан
+    wd = await get_director_location(session, user_obj.id, location_id)
+    if wd is None:
+        raise HTTPException(status_code=403, detail="Этот склад не привязан к вашему аккаунту")
 
     # Получаем локацию
     q_loc = select(locations).where(locations.c.id == wd.location_id)
@@ -71,12 +155,34 @@ async def director_me(session: AsyncSession = Depends(get_async_session), user_o
 
 
 @router.get("/me/stats")
-async def get_director_stats(day: Optional[str] = Query(None), session: AsyncSession = Depends(get_async_session), user_obj: User = Depends(current_user)):
+async def get_director_stats(
+    request: Request,
+    day: Optional[str] = Query(None), 
+    session: AsyncSession = Depends(get_async_session), 
+    user_obj: User = Depends(current_user)
+):
     """Получить статистику текущего директора за день."""
-    wd = await get_director_location(session, user_obj.id)
-    if wd is None:
+    # Получаем все склады директора
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
         raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
-
+    
+    # Получаем location_id из cookie или используем первый
+    location_id = None
+    cookie_location_id = request.cookies.get("director_location_id")
+    if cookie_location_id:
+        try:
+            cookie_location_id = int(cookie_location_id)
+            for wd in wd_list:
+                if wd.location_id == cookie_location_id:
+                    location_id = cookie_location_id
+                    break
+        except (ValueError, TypeError):
+            pass
+    
+    if location_id is None:
+        location_id = wd_list[0].location_id
+    
     # Парсим день (если не указан — сегодня)
     if day:
         try:
@@ -85,8 +191,6 @@ async def get_director_stats(day: Optional[str] = Query(None), session: AsyncSes
             raise HTTPException(status_code=400, detail="Неверный формат даты, ожидается YYYY-MM-DD")
     else:
         req_day = datetime.now().date()
-
-    location_id = wd.location_id
 
     # Получаем или создаём запись location_day
     from api.utils import ensure_location_day_from_prev
@@ -105,14 +209,44 @@ async def get_director_stats(day: Optional[str] = Query(None), session: AsyncSes
 
 
 @router.post("/me/stats")
-async def update_stats(location_id: Optional[int] = None, day: Optional[str] = Query(None), arrived_actual: Optional[int] = None, expected: Optional[int] = None, outsourcing: Optional[int] = None, overtime: Optional[int] = None, lunch: Optional[int] = None, session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
-    wd = await get_director_location(session, user_obj.id)
+async def update_stats(
+    request: Request,
+    day: Optional[str] = Query(None), 
+    arrived_actual: Optional[int] = None, 
+    expected: Optional[int] = None, 
+    outsourcing: Optional[int] = None, 
+    overtime: Optional[int] = None, 
+    lunch: Optional[int] = None, 
+    session: AsyncSession = Depends(get_async_session), 
+    user_obj=Depends(current_user)
+):
+    """Обновить статистику директора. Поддерживает несколько складов через cookie."""
     # Проверка роли: если пользователь директор — он должен быть директором этого склада.
     # HR может редактировать статистику за любые прошедшие дни.
     is_hr_user = await is_hr(session, user_obj.id)
-    if not is_hr_user and wd is None:
-        raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
-
+    
+    if not is_hr_user:
+        # Получаем все склады директора
+        wd_list = await get_director_locations(session, user_obj.id)
+        if not wd_list:
+            raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
+        
+        # Получаем location_id из cookie или используем первый
+        location_id = None
+        cookie_location_id = request.cookies.get("director_location_id")
+        if cookie_location_id:
+            try:
+                cookie_location_id = int(cookie_location_id)
+                for wd in wd_list:
+                    if wd.location_id == cookie_location_id:
+                        location_id = cookie_location_id
+                        break
+            except (ValueError, TypeError):
+                pass
+        
+        if location_id is None:
+            location_id = wd_list[0].location_id
+    
     # Парсим день (если не указан — сегодня)
     if day:
         try:
@@ -360,16 +494,42 @@ async def update_location_stats_by_location(location_id: int, day: Optional[str]
 
 
 @router.get('/director/dashboard')
-async def director_dashboard(session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
+async def director_dashboard(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session), 
+    user_obj=Depends(current_user)
+):
     """Страница для директора склада со статистикой только своего склада.
-    Показывает названиие склада, владельцев, работников за последние 5 дней, статистику."""
+    Показывает названиие склада, владельцев, работников за последние 5 дней, статистику.
+    Поддерживает выбор склада через cookie при нескольких привязанных складах."""
     
     # Проверяем, что пользователь директор
-    wd = await get_director_location(session, user_obj.id)
-    if wd is None:
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
         raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
     
-    location_id = wd.location_id
+    # Получаем location_id из cookie или используем первый
+    location_id = None
+    cookie_location_id = request.cookies.get("director_location_id")
+    if cookie_location_id:
+        try:
+            cookie_location_id = int(cookie_location_id)
+            # Проверяем, что этот склад привязан к пользователю
+            for wd in wd_list:
+                if wd.location_id == cookie_location_id:
+                    location_id = cookie_location_id
+                    break
+        except (ValueError, TypeError):
+            pass
+    
+    # Если не нашли в cookie или нет cookie - берем первый
+    if location_id is None:
+        location_id = wd_list[0].location_id
+    
+    # Проверяем что выбранный склад привязан к пользователю
+    wd = await get_director_location(session, user_obj.id, location_id)
+    if wd is None:
+        raise HTTPException(status_code=403, detail="Этот склад не привязан к вашему аккаунту")
     
     # Получаем информацию о локации
     q_loc = select(locations).where(locations.c.id == location_id)
@@ -474,3 +634,266 @@ async def director_dashboard(session: AsyncSession = Depends(get_async_session),
         "today": str(today),
         "stats": dict(stats._mapping) if stats else None,
     }
+
+
+@router.get("/my/locations")
+async def get_my_locations(session: AsyncSession = Depends(get_async_session), user_obj=Depends(current_user)):
+    """Получить список всех складов, привязанных к текущему директору."""
+    from api.utils import is_hr
+    
+    # Проверяем что пользователь директор
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
+        # Проверяем, может ли пользователь просматривать директоров (HR/суперюзер)
+        is_hr_user = await is_hr(session, user_obj.id)
+        is_superuser = getattr(user_obj, 'is_superuser', False)
+        if not (is_hr_user or is_superuser):
+            raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
+        return {"locations": [], "needs_selection": False}
+    
+    # Получаем информацию о локациях
+    location_ids = [wd.location_id for wd in wd_list]
+    q_locs = select(locations).where(locations.c.id.in_(location_ids), locations.c.is_active == True)
+    r_locs = await session.execute(q_locs)
+    locs = [dict(row._mapping) for row in r_locs.fetchall()]
+    
+    # Если только один склад - выбор не нужен
+    needs_selection = len(locs) > 1
+    
+    return {
+        "locations": locs,
+        "needs_selection": needs_selection,
+        "count": len(locs)
+    }
+
+
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+class SelectLocationRequest(BaseModel):
+    location_id: int
+
+@router.post("/my/select-location")
+async def select_location(
+    request: Request,
+    body: SelectLocationRequest,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Выбрать текущий склад для работы. Проверяет, что склад привязан к директору. Устанавливает cookie."""
+    location_id = body.location_id
+    # Проверяем, что пользователь директор
+    wd_list = await get_director_locations(session, user_obj.id)
+    if not wd_list:
+        raise HTTPException(status_code=403, detail="Вы не являетесь директором склада")
+    
+    # Проверяем, что склад привязан к пользователю
+    wd = await get_director_location(session, user_obj.id, location_id)
+    if wd is None:
+        raise HTTPException(status_code=403, detail="Этот склад не привязан к вашему аккаунту")
+    
+    # Получаем информацию о локации
+    q_loc = select(locations).where(locations.c.id == location_id)
+    r_loc = await session.execute(q_loc)
+    loc = r_loc.fetchone()
+    
+    if not loc:
+        raise HTTPException(status_code=404, detail="Локация не найдена")
+    
+    # Создаём ответ с cookie
+    response = JSONResponse(content={
+        "location_id": location_id,
+        "message": f"Выбран склад: {loc.location_name}"
+    })
+    
+    # Устанавливаем cookie на 30 дней
+    response.set_cookie(
+        key="director_location_id",
+        value=str(location_id),
+        httponly=True,
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60  # 30 дней в секундах
+    )
+    
+    return response
+
+
+@router.get("/my/current-location")
+async def get_current_location(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Получить текущий выбранный склад (из cookie или первый доступный)."""
+    # Пробуем получить из cookie
+    location_id = request.cookies.get("director_location_id")
+    
+    if location_id:
+        try:
+            location_id = int(location_id)
+            # Проверяем, что склад привязан к пользователю
+            wd = await get_director_location(session, user_obj.id, location_id)
+            if wd:
+                q_loc = select(locations).where(locations.c.id == location_id)
+                r_loc = await session.execute(q_loc)
+                loc = r_loc.fetchone()
+                if loc:
+                    return {"location": dict(loc._mapping), "from_cookie": True}
+        except (ValueError, TypeError):
+            pass
+    
+    # Если нет в cookie или невалидный - возвращаем первый доступный
+    wd_list = await get_director_locations(session, user_obj.id)
+    if wd_list:
+        # Берем первый или тот что в cookie
+        target_location_id = location_id if location_id else wd_list[0].location_id
+        
+        # Ищем валидную локацию
+        for wd in wd_list:
+            if wd.location_id == target_location_id:
+                q_loc = select(locations).where(locations.c.id == wd.location_id)
+                r_loc = await session.execute(q_loc)
+                loc = r_loc.fetchone()
+                if loc:
+                    return {"location": dict(loc._mapping), "from_cookie": False}
+        
+        # Если не нашли - возвращаем первую
+        q_loc = select(locations).where(locations.c.id == wd_list[0].location_id)
+        r_loc = await session.execute(q_loc)
+        loc = r_loc.fetchone()
+        if loc:
+            return {"location": dict(loc._mapping), "from_cookie": False}
+    
+    return {"location": None, "needs_selection": True}
+
+
+@router.get('/{user_id}/locations')
+async def get_director_warehouses(
+    user_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Получить все склады, привязанные к директору (для HR)."""
+    from api.utils import is_hr
+    if not (getattr(user_obj, 'is_superuser', False) or await is_hr(session, user_obj.id)):
+        raise HTTPException(status_code=403, detail='Нет доступа')
+    
+    q = select(
+        warehouse_directors.c.id,
+        warehouse_directors.c.location_id,
+        warehouse_directors.c.user_id,
+        warehouse_directors.c.is_active,
+        warehouse_directors.c.created_at,
+        locations.c.location_name
+    ).select_from(
+        warehouse_directors.join(locations, warehouse_directors.c.location_id == locations.c.id)
+    ).where(
+        warehouse_directors.c.user_id == user_id,
+        warehouse_directors.c.is_active == True
+    )
+    r = await session.execute(q)
+    items = [dict(row._mapping) for row in r.fetchall()]
+    
+    return {"locations": items}
+
+
+@router.post('/{user_id}/locations')
+async def add_director_warehouse(
+    user_id: int,
+    location_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Привязать склад к директору (для HR)."""
+    from api.utils import is_hr
+    if not (getattr(user_obj, 'is_superuser', False) or await is_hr(session, user_obj.id)):
+        raise HTTPException(status_code=403, detail='Нет доступа')
+    
+    # Проверяем что склад существует
+    q_loc = select(locations).where(locations.c.id == location_id)
+    r_loc = await session.execute(q_loc)
+    loc = r_loc.fetchone()
+    if not loc:
+        raise HTTPException(status_code=404, detail='Склад не найден')
+    
+    # Проверяем что пользователь существует
+    q_user = select(user).where(user.c.id == user_id)
+    r_user = await session.execute(q_user)
+    usr = r_user.fetchone()
+    if not usr:
+        raise HTTPException(status_code=404, detail='Пользователь не найден')
+    
+    # Проверяем, что связь уже не существует (активная)
+    q_exists = select(warehouse_directors).where(
+        warehouse_directors.c.user_id == user_id,
+        warehouse_directors.c.location_id == location_id,
+        warehouse_directors.c.is_active == True
+    )
+    r_exists = await session.execute(q_exists)
+    if r_exists.fetchone():
+        raise HTTPException(status_code=400, detail='Склад уже привязан к этому директору')
+    
+    # Деактивируем старую связь если есть
+    q_old = select(warehouse_directors).where(
+        warehouse_directors.c.user_id == user_id,
+        warehouse_directors.c.location_id == location_id,
+        warehouse_directors.c.is_active == False
+    )
+    r_old = await session.execute(q_old)
+    old = r_old.fetchone()
+    
+    if old:
+        # Реактивируем старую запись
+        await session.execute(
+            warehouse_directors.update().where(warehouse_directors.c.id == old.id).values(is_active=True)
+        )
+    else:
+        # Создаём новую запись
+        await session.execute(
+            warehouse_directors.insert().values(
+                user_id=user_id,
+                location_id=location_id,
+                is_active=True
+            )
+        )
+    
+    await session.commit()
+    
+    return {
+        "success": True,
+        "message": f"Склад '{loc.location_name}' успешно привязан к директору",
+        "location": {"id": location_id, "name": loc.location_name}
+    }
+
+
+@router.delete('/{user_id}/locations/{location_id}')
+async def remove_director_warehouse(
+    user_id: int,
+    location_id: int,
+    session: AsyncSession = Depends(get_async_session),
+    user_obj=Depends(current_user)
+):
+    """Отвязать склад от директора (для HR)."""
+    from api.utils import is_hr
+    if not (getattr(user_obj, 'is_superuser', False) or await is_hr(session, user_obj.id)):
+        raise HTTPException(status_code=403, detail='Нет доступа')
+    
+    # Ищем активную связь
+    q = select(warehouse_directors).where(
+        warehouse_directors.c.user_id == user_id,
+        warehouse_directors.c.location_id == location_id,
+        warehouse_directors.c.is_active == True
+    )
+    r = await session.execute(q)
+    wd = r.fetchone()
+    
+    if not wd:
+        raise HTTPException(status_code=404, detail='Связь не найдена')
+    
+    # Деактивируем связь
+    await session.execute(
+        warehouse_directors.update().where(warehouse_directors.c.id == wd.id).values(is_active=False)
+    )
+    await session.commit()
+    
+    return {"success": True, "message": "Склад успешно отвязан от директора"}

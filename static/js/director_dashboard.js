@@ -3,12 +3,17 @@ let todayDate = null;
 let directorData = null;
 let currentStats = null;
 let allStatsData = {}; // Кеш статистики всех дней
+let myLocations = []; // Склады директора
+let currentLocationId = null; // Текущий выбранный склад
 
 document.addEventListener("DOMContentLoaded", async () => {
   todayDate = new Date().toISOString().slice(0, 10);
   currentDay = todayDate;
   document.getElementById("dateNavigator").value = currentDay;
   document.getElementById("dateNavigator").max = todayDate;
+
+  // Проверяем, есть ли у директора несколько складов
+  await checkAndSelectLocation();
 
   // Загружаем данные панели директора
   await loadDashboard();
@@ -19,6 +24,169 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadDashboard();
   });
 });
+
+// Проверка и выбор склада при входе
+async function checkAndSelectLocation() {
+  try {
+    const res = await fetch("/directors/my/locations", {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      return; // Не директор - не проверяем
+    }
+
+    const data = await res.json();
+    myLocations = data.locations || [];
+
+    // Всегда показываем переключатель если есть хотя бы 1 склад
+    if (myLocations.length > 0) {
+      // Если склад ещё не выбран - показываем модалку
+      if (data.needs_selection && myLocations.length > 1) {
+        showLocationSelectionModal();
+      }
+
+      // Устанавливаем текущий ID из cookie или первого
+      currentLocationId = myLocations[0].id;
+
+      // Обновляем переключатель складов
+      updateLocationSwitcher();
+    }
+  } catch (e) {
+    console.error("Ошибка при проверке складов:", e);
+  }
+}
+
+// Показать модалку выбора склада
+function showLocationSelectionModal() {
+  const modalEl = document.getElementById("locationSelectionModal");
+  if (!modalEl) {
+    // Если модалки нет - создаём её
+    createLocationSelectionModal();
+  }
+
+  const modal = new bootstrap.Modal(
+    document.getElementById("locationSelectionModal"),
+  );
+  modal.show();
+}
+
+// Создать модалку выбора склада если её нет
+function createLocationSelectionModal() {
+  const modalHtml = `
+    <div class="modal fade" id="locationSelectionModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title"><i class="bi bi-building"></i> Выберите склад</h5>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-3">К вашему аккаунту привязано несколько складов. Пожалуйста, выберите склад для работы:</p>
+            <div class="list-group" id="locationList">
+              ${myLocations
+                .map(
+                  (loc) => `
+                <button type="button" class="list-group-item list-group-item-action location-item" data-id="${loc.id}" data-name="${escapeHtml(loc.location_name)}">
+                  <i class="bi bi-building me-2"></i>
+                  <strong>${escapeHtml(loc.location_name)}</strong>
+                </button>
+              `,
+                )
+                .join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  // Добавляем обработчики
+  document.querySelectorAll(".location-item").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const locId = parseInt(e.currentTarget.dataset.id);
+      const locName = e.currentTarget.dataset.name;
+
+      // Выбираем склад
+      await selectLocation(locId);
+
+      // Закрываем модалку
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("locationSelectionModal"),
+      );
+      if (modal) modal.hide();
+
+      // Перезагружаем дашборд
+      loadDashboard();
+    });
+  });
+}
+
+// Выбрать склад
+async function selectLocation(locationId) {
+  try {
+    const res = await fetch("/directors/my/select-location", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ location_id: locationId }),
+      credentials: "include",
+    });
+
+    if (res.ok) {
+      currentLocationId = locationId;
+      updateLocationSwitcher();
+    } else {
+      const error = await res.json().catch(() => ({}));
+      console.error("Ошибка выбора склада:", error.detail || error);
+    }
+  } catch (e) {
+    console.error("Ошибка при выборе склада:", e);
+  }
+}
+
+// Обновить переключатель складов
+function updateLocationSwitcher() {
+  const switcherEl = document.getElementById("locationSwitcher");
+  if (!switcherEl || myLocations.length === 0) return;
+
+  // Находим текущий склад
+  const currentLoc =
+    myLocations.find((loc) => loc.id === currentLocationId) || myLocations[0];
+
+  // Показываем переключатель если есть хотя бы 1 склад
+  if (myLocations.length >= 1) {
+    switcherEl.innerHTML = `
+      <div class="location-switcher">
+        <span class="location-label"><i class="bi bi-building"></i> Склад:</span>
+        <select class="form-select form-select-sm d-inline-block w-auto ms-2" id="locationSelect" onchange="switchLocation(this.value)">
+          ${myLocations
+            .map(
+              (loc) => `
+            <option value="${loc.id}" ${loc.id === currentLocationId ? "selected" : ""}>
+              ${escapeHtml(loc.location_name)}
+            </option>
+          `,
+            )
+            .join("")}
+        </select>
+      </div>
+    `;
+  }
+}
+
+// Переключить склад
+async function switchLocation(locationId) {
+  locationId = parseInt(locationId);
+  if (locationId === currentLocationId) return;
+
+  await selectLocation(locationId);
+
+  // Перезагружаем дашборд
+  loadDashboard();
+}
 
 async function loadDashboard() {
   try {
@@ -72,7 +240,7 @@ function displayOwners() {
 
   container.innerHTML = directorData.owners
     .map(
-      (owner) => `<span class="owner-badge">${escapeHtml(owner.name)}</span>`
+      (owner) => `<span class="owner-badge">${escapeHtml(owner.name)}</span>`,
     )
     .join("");
 }
@@ -97,7 +265,7 @@ function displayEmployeesByDay() {
   // ИЛИ которые были уволнены в этот день
   const ownerIds = new Set((directorData.owners || []).map((o) => o.id));
   employees = employees.filter(
-    (emp) => (emp.owner_id && ownerIds.has(emp.owner_id)) || emp.is_fired_today
+    (emp) => (emp.owner_id && ownerIds.has(emp.owner_id)) || emp.is_fired_today,
   );
 
   if (employees.length === 0) {
@@ -250,8 +418,10 @@ async function loadAllStatsForView() {
     html += `
       <div class="stat-card ${isToday ? "today" : ""}">
         <div class="stat-card-date-header">${dayLabel}${
-      isToday ? ' <i class="bi bi-star-fill" style="color: #ffc107;"></i>' : ""
-    }</div>
+          isToday
+            ? ' <i class="bi bi-star-fill" style="color: #ffc107;"></i>'
+            : ""
+        }</div>
         <div class="stat-card-rows">
           <div class="stat-row">
             <span class="stat-label">Прибыло</span>
@@ -333,7 +503,7 @@ async function saveStats() {
       showToast(
         "❌ Ошибка при сохранении: " +
           (errorData.detail || "Неизвестная ошибка"),
-        "error"
+        "error",
       );
     }
   } catch (e) {
@@ -428,7 +598,7 @@ async function showEmployeeHistory(employeeId, employeeName) {
 
     // Показываем модальное окно
     const modal = new bootstrap.Modal(
-      document.getElementById("employeeHistoryModal")
+      document.getElementById("employeeHistoryModal"),
     );
     modal.show();
 
@@ -443,11 +613,10 @@ async function showEmployeeHistory(employeeId, employeeName) {
         "Failed to load history, status:",
         res.status,
         "response:",
-        errorText
+        errorText,
       );
-      document.getElementById(
-        "historyContent"
-      ).innerHTML = `<div class="alert alert-danger">
+      document.getElementById("historyContent").innerHTML =
+        `<div class="alert alert-danger">
         <strong>Ошибка ${res.status}:</strong> ${res.statusText}
       </div>`;
       return;
@@ -503,9 +672,8 @@ async function showEmployeeHistory(employeeId, employeeName) {
     document.getElementById("historyContent").innerHTML = historyHtml;
   } catch (e) {
     console.error("Ошибка при загрузке истории:", e);
-    document.getElementById(
-      "historyContent"
-    ).innerHTML = `<div class="alert alert-danger">
+    document.getElementById("historyContent").innerHTML =
+      `<div class="alert alert-danger">
       <strong>Ошибка:</strong> ${escapeHtml(e.message)}
     </div>`;
   }

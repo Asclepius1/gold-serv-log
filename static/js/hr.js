@@ -43,16 +43,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const ownersNext = document.getElementById("ownersNext");
   if (ownersPrev)
     ownersPrev.addEventListener("click", () =>
-      loadOwnersManage(Math.max(1, ownersManagePage - 1))
+      loadOwnersManage(Math.max(1, ownersManagePage - 1)),
     );
   if (ownersNext)
     ownersNext.addEventListener("click", () =>
-      loadOwnersManage(ownersManagePage + 1)
+      loadOwnersManage(ownersManagePage + 1),
     );
 
   // load assignments when chosen location changes
   const assignLocationSelectEl = document.getElementById(
-    "assignLocationSelect"
+    "assignLocationSelect",
   );
   if (assignLocationSelectEl)
     assignLocationSelectEl.addEventListener("change", () => {
@@ -90,6 +90,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   // initial load for current date
   loadAll();
+
+  // Load director warehouses management UI
+  loadDirectorWarehousesManagement();
 });
 
 // Owners management state
@@ -153,7 +156,7 @@ async function loadOwnersManage(page = 1) {
     const arr = data.filter(
       (o) =>
         !ownersManageSearch ||
-        o.name.toLowerCase().includes(ownersManageSearch.toLowerCase())
+        o.name.toLowerCase().includes(ownersManageSearch.toLowerCase()),
     );
     const total = arr.length;
     const start = (ownersManagePage - 1) * ownersManagePageSize;
@@ -171,7 +174,7 @@ async function loadOwnersManage(page = 1) {
       }</small></div><div><button class="btn btn-sm btn-secondary me-1" onclick="editOwnerPrompt(${
         o.id
       }, '${escapeHtml(
-        o.name
+        o.name,
       )}')">Изменить</button><button class="btn btn-sm btn-danger" onclick="deleteOwner(${
         o.id
       })">Удалить</button></div>`;
@@ -197,7 +200,7 @@ async function loadOwnersManage(page = 1) {
           "list-group-item d-flex justify-content-between align-items-center";
         item.setAttribute("data-owner-id", id);
         item.innerHTML = `<div>${escapeHtml(
-          name
+          name,
         )} <small class="text-muted">#${id}</small></div><div><button class="btn btn-sm btn-primary" onclick="assignOwnerAdd(${id})">Добавить</button></div>`;
         avail.appendChild(item);
       });
@@ -234,7 +237,7 @@ async function editOwnerPrompt(id, currentName) {
   const nv = await showPromptModal(
     "Редактировать owner",
     "Новое имя",
-    currentName
+    currentName,
   );
   if (nv !== null) editOwner(id, nv);
 }
@@ -319,7 +322,7 @@ async function loadOwnerAssignments() {
         "list-group-item d-flex justify-content-between align-items-center";
       item.setAttribute("data-owner-id", id);
       item.innerHTML = `<div>${escapeHtml(
-        name
+        name,
       )} <small class="text-muted">#${id}</small></div><div><button class="btn btn-sm btn-primary" onclick="assignOwnerAdd(${id})">Добавить</button></div>`;
       avail.appendChild(item);
     });
@@ -375,7 +378,7 @@ async function saveOwnerAssignments() {
 
 async function clearOwnerAssignments() {
   const ok = await showConfirmModal(
-    "Снять всех владельцев с склада на выбранную дату?"
+    "Снять всех владельцев с склада на выбранную дату?",
   );
   if (!ok) return;
   const locEl = document.getElementById("assignLocationSelect");
@@ -423,7 +426,7 @@ function assignOwnerAdd(id) {
     "list-group-item d-flex justify-content-between align-items-center";
   el.setAttribute("data-owner-id", idStr);
   el.innerHTML = `<div>${escapeHtml(
-    name
+    name,
   )} <small class="text-muted">#${idStr}</small></div><div><button class="btn btn-sm btn-outline-danger" onclick="removeAssignedOwner(${id})">Удалить</button></div>`;
   cur.appendChild(el);
   // remove from available
@@ -446,7 +449,7 @@ function removeAssignedOwner(id) {
       "list-group-item d-flex justify-content-between align-items-center";
     d.setAttribute("data-owner-id", idStr);
     d.innerHTML = `<div>${escapeHtml(
-      name
+      name,
     )} <small class="text-muted">#${idStr}</small></div><div><button class="btn btn-sm btn-primary" onclick="assignOwnerAdd(${id})">Добавить</button></div>`;
     avail.appendChild(d);
   }
@@ -550,7 +553,7 @@ async function createEmployee() {
   try {
     const res = await fetch(
       `/hr_admin/employees?name=${encodeURIComponent(name)}`,
-      { method: "POST", credentials: "include" }
+      { method: "POST", credentials: "include" },
     );
     if (res.ok) {
       const nameEl = document.getElementById("newEmployeeName");
@@ -567,7 +570,7 @@ async function editEmployeePrompt(id, currentName) {
   const nv = await showPromptModal(
     "Редактировать сотрудника",
     "Новое имя сотрудника",
-    currentName
+    currentName,
   );
   if (nv !== null) {
     editEmployee(id, nv);
@@ -578,7 +581,7 @@ async function editEmployee(id, name) {
   try {
     const res = await fetch(
       `/hr_admin/employees/${id}?name=${encodeURIComponent(name)}`,
-      { method: "PUT", credentials: "include" }
+      { method: "PUT", credentials: "include" },
     );
     if (res.ok) {
       loadAdminEmployees();
@@ -636,7 +639,7 @@ async function loadAdminDirectors() {
           : "";
       el.innerHTML = `
           <div><strong>${escapeHtml(
-            userLabel
+            userLabel,
           )}</strong> ${statusBadge} — ${escapeHtml(locLabel)}</div>
           <div>
             <button class="btn btn-sm btn-secondary me-1" onclick="editDirectorPrompt(${
@@ -682,9 +685,9 @@ async function createDirector() {
   try {
     const res = await fetch(
       `/hr_admin/directors?user_id=${encodeURIComponent(
-        userId
+        userId,
       )}&location_id=${encodeURIComponent(loc)}`,
-      { method: "POST", credentials: "include" }
+      { method: "POST", credentials: "include" },
     );
     if (res.ok) {
       const userIdEl = document.getElementById("newDirectorUserId");
@@ -703,7 +706,7 @@ async function editDirectorPrompt(userId, currentLoc) {
   let options = [];
   if (locSel && locSel.options.length) {
     Array.from(locSel.options).forEach((o) =>
-      options.push({ value: o.value, text: o.textContent })
+      options.push({ value: o.value, text: o.textContent }),
     );
   } else {
     try {
@@ -711,7 +714,7 @@ async function editDirectorPrompt(userId, currentLoc) {
       if (r.ok) {
         const data = await r.json();
         (data.locations || []).forEach((l) =>
-          options.push({ value: l.id, text: l.location_name })
+          options.push({ value: l.id, text: l.location_name }),
         );
       }
     } catch (e) {
@@ -721,7 +724,7 @@ async function editDirectorPrompt(userId, currentLoc) {
   const nv = await showSelectModal(
     "Выберите локацию для директора",
     options,
-    String(currentLoc)
+    String(currentLoc),
   );
   if (nv !== null) editDirector(userId, nv);
 }
@@ -730,9 +733,9 @@ async function editDirector(userId, locationId) {
   try {
     const res = await fetch(
       `/hr_admin/directors/${userId}?location_id=${encodeURIComponent(
-        locationId
+        locationId,
       )}`,
-      { method: "PUT", credentials: "include" }
+      { method: "PUT", credentials: "include" },
     );
     if (res.ok) {
       loadAdminDirectors();
@@ -805,7 +808,7 @@ async function createLocation() {
   try {
     const res = await fetch(
       `/hr_admin/locations?location_name=${encodeURIComponent(name)}`,
-      { method: "POST", credentials: "include" }
+      { method: "POST", credentials: "include" },
     );
     if (res.ok) {
       const nameEl = document.getElementById("newLocationName");
@@ -822,7 +825,7 @@ function editLocationPrompt(id, currentName) {
   showPromptModal(
     "Редактировать склад",
     "Новое название склада",
-    currentName
+    currentName,
   ).then((nv) => {
     if (nv !== null) editLocation(id, nv);
   });
@@ -832,7 +835,7 @@ async function editLocation(id, name) {
   try {
     const res = await fetch(
       `/hr_admin/locations/${id}?location_name=${encodeURIComponent(name)}`,
-      { method: "PUT", credentials: "include" }
+      { method: "PUT", credentials: "include" },
     );
     if (res.ok) {
       loadAdminLocations();
@@ -891,7 +894,7 @@ async function loadDirectors(day = null) {
           let directorToSelect = null;
           if (selectedDirectorUserId) {
             directorToSelect = data.directors.find(
-              (d) => String(d.user_id) === String(selectedDirectorUserId)
+              (d) => String(d.user_id) === String(selectedDirectorUserId),
             );
           }
           // If current director not found, select first director
@@ -1052,7 +1055,7 @@ async function loadAll() {
   try {
     const res2 = await fetch(
       "/employees/list?day=" + day + "&location_id=" + currentLocationId,
-      { credentials: "include" }
+      { credentials: "include" },
     );
     if (res2.ok) {
       const d2 = await res2.json();
@@ -1122,7 +1125,7 @@ async function loadAll() {
   try {
     const res3 = await fetch(
       `/directors/${currentLocationId}/stats?day=${day}`,
-      { credentials: "include" }
+      { credentials: "include" },
     );
     if (res3.ok) {
       const d3 = await res3.json();
@@ -1252,7 +1255,7 @@ async function saveEmployeeAssignment(employeeId) {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ owner_id: ownerId }),
-      }
+      },
     );
 
     if (res.ok) {
@@ -1340,11 +1343,211 @@ async function showEmployeeHistory(employeeId, employeeName) {
           if (confirmBtn) confirmBtn.style.display = "block";
           if (input) input.style.display = "block";
         },
-        { once: true }
+        { once: true },
       );
     }
   } catch (e) {
     console.error("Ошибка при загрузке истории:", e);
     showToast("Ошибка при загрузке истории", "error");
+  }
+}
+
+/* Director Warehouses Management */
+let directorWarehousesCache = {};
+
+async function loadDirectorWarehousesManagement() {
+  // Загружаем список директоров для селекта
+  const directorUserSelect = document.getElementById("directorUserSelect");
+  if (!directorUserSelect) return;
+
+  try {
+    const res = await fetch("/directors/list", { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      const directors = data.directors || [];
+
+      // Очищаем и заполняем селект уникальными директорами
+      directorUserSelect.innerHTML =
+        '<option value="">-- Выберите директора --</option>';
+      const uniqueDirectors = {};
+      directors.forEach((d) => {
+        if (!uniqueDirectors[d.user_id]) {
+          uniqueDirectors[d.user_id] = {
+            id: d.user_id,
+            name:
+              d.user_name || d.name || d.user_email || `Директор #${d.user_id}`,
+          };
+        }
+      });
+
+      Object.values(uniqueDirectors).forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d.id;
+        opt.textContent = d.name;
+        directorUserSelect.appendChild(opt);
+      });
+
+      // Загружаем все склады для кэша
+      await loadAllLocationsForDirectorManagement();
+
+      // Добавляем обработчик изменения
+      directorUserSelect.addEventListener("change", async () => {
+        const userId = directorUserSelect.value;
+        if (userId) {
+          await loadDirectorWarehouses(parseInt(userId));
+        } else {
+          clearDirectorWarehousesUI();
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Ошибка при загрузке списка директоров:", e);
+  }
+}
+
+async function loadAllLocationsForDirectorManagement() {
+  try {
+    const res = await fetch("/locations/list", { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      directorWarehousesCache = {
+        locations: data.locations || [],
+        locationMap: {},
+      };
+      (data.locations || []).forEach((l) => {
+        directorWarehousesCache.locationMap[l.id] = l.location_name;
+      });
+    }
+  } catch (e) {
+    console.error("Ошибка при загрузке складов:", e);
+  }
+}
+
+async function loadDirectorWarehouses(userId) {
+  const currentList = document.getElementById("directorWarehousesList");
+  const availableList = document.getElementById("availableWarehousesList");
+  const emptyMsg = document.getElementById("directorWarehousesEmpty");
+
+  if (!currentList || !availableList) return;
+
+  try {
+    const res = await fetch(`/directors/${userId}/locations`, {
+      credentials: "include",
+    });
+    if (!res.ok) {
+      showToast("Ошибка при загрузке складов директора", "error");
+      return;
+    }
+
+    const data = await res.json();
+    const assignedLocations = (data.locations || []).map((l) => l.location_id);
+
+    // Очищаем списки
+    currentList.innerHTML = "";
+    availableList.innerHTML = "";
+
+    // Заполняем текущие привязанные склады
+    const locations = directorWarehousesCache.locations || [];
+    let hasAssigned = false;
+
+    locations.forEach((loc) => {
+      if (assignedLocations.includes(loc.id)) {
+        hasAssigned = true;
+        const item = document.createElement("div");
+        item.className =
+          "list-group-item d-flex justify-content-between align-items-center";
+        item.setAttribute("data-location-id", loc.id);
+        item.innerHTML = `
+          <div>${escapeHtml(loc.location_name)} <small class="text-muted">#${loc.id}</small></div>
+          <div>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeDirectorWarehouse(${userId}, ${loc.id})">Отвязать</button>
+          </div>
+        `;
+        currentList.appendChild(item);
+      }
+    });
+
+    if (hasAssigned) {
+      emptyMsg.style.display = "none";
+    } else {
+      emptyMsg.style.display = "block";
+    }
+
+    // Заполняем доступные склады (не привязанные)
+    locations.forEach((loc) => {
+      if (!assignedLocations.includes(loc.id)) {
+        const item = document.createElement("div");
+        item.className =
+          "list-group-item d-flex justify-content-between align-items-center";
+        item.setAttribute("data-location-id", loc.id);
+        item.innerHTML = `
+          <div>${escapeHtml(loc.location_name)} <small class="text-muted">#${loc.id}</small></div>
+          <div>
+            <button class="btn btn-sm btn-primary" onclick="addDirectorWarehouse(${userId}, ${loc.id})">Привязать</button>
+          </div>
+        `;
+        availableList.appendChild(item);
+      }
+    });
+  } catch (e) {
+    console.error("Ошибка при загрузке складов директора:", e);
+  }
+}
+
+function clearDirectorWarehousesUI() {
+  const currentList = document.getElementById("directorWarehousesList");
+  const availableList = document.getElementById("availableWarehousesList");
+  const emptyMsg = document.getElementById("directorWarehousesEmpty");
+
+  if (currentList) currentList.innerHTML = "";
+  if (availableList) availableList.innerHTML = "";
+  if (emptyMsg) emptyMsg.style.display = "block";
+}
+
+async function addDirectorWarehouse(userId, locationId) {
+  try {
+    const res = await fetch(
+      `/directors/${userId}/locations?location_id=${locationId}`,
+      {
+        method: "POST",
+        credentials: "include",
+      },
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast(data.message || "Склад успешно привязан", "success");
+      await loadDirectorWarehouses(userId);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Ошибка при привязке склада", "error");
+    }
+  } catch (e) {
+    console.error("Ошибка при привязке склада:", e);
+    showToast("Ошибка при привязке склада", "error");
+  }
+}
+
+async function removeDirectorWarehouse(userId, locationId) {
+  const ok = await showConfirmModal("Отвязать склад от директора?");
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`/directors/${userId}/locations/${locationId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast(data.message || "Склад успешно отвязан", "success");
+      await loadDirectorWarehouses(userId);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Ошибка при отвязке склада", "error");
+    }
+  } catch (e) {
+    console.error("Ошибка при отвязке склада:", e);
+    showToast("Ошибка при отвязке склада", "error");
   }
 }

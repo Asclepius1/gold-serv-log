@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -28,6 +28,38 @@
         </nav>
       </div>
     </header>
+
+    <div id="errorAlert" hidden style="position: sticky; top: 0; z-index: 100">
+      <div
+        style="
+          background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+          border-left: 5px solid #dc3545;
+          padding: 16px 20px;
+          margin: 0;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <div
+          style="margin: 0; font-size: 16px; color: #721c24; font-weight: 500"
+          id="errorUserMessage"
+        ></div>
+        <div
+          style="
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(220, 53, 69, 0.3);
+            font-size: 13px;
+            color: #856404;
+            background: #fff3cd;
+            padding: 8px 12px;
+            border-radius: 3px;
+            display: inline-block;
+          "
+          id="errorDevMessage"
+        ></div>
+      </div>
+    </div>
 
     <main class="">
       <div

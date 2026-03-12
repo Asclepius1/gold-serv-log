@@ -9,7 +9,7 @@ from typing import List
 from fastapi.responses import FileResponse
 import httpx
 import requests
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
 from config import BEARER_TOKEN_GOLD_SERV, GOLD_SERV_API_URL
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -21,12 +21,16 @@ from models.models import files, reports, owner_report_access, owner as owner_db
 from models.db import get_async_session, redis_client
 from auth.auth import current_user, superuser_required
 from auth.db import User
+from utils.logger_config import setup_logger, cleanup_old_logs
 
 router = APIRouter(prefix="/files", tags=["files"], )
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 timeout = httpx.Timeout(10.0, read=20.0)
+
+# Инициализируем логгер
+logger = setup_logger("files_api")
 
 @router.get("/reports")
 async def get_reports(session: AsyncSession = Depends(get_async_session), user: User = Depends(superuser_required)):
@@ -91,7 +95,7 @@ async def add_report(
     await session.commit()
     return {"message": "Успешно добавлено"}
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(4))  # 3 попытки с задержкой 4 секунды
+@retry(stop=stop_after_attempt(2), wait=wait_fixed(2))  # 2 попытки с задержкой 2 сек (вместо 3х с 4сек)
 async def make_request(client: httpx.AsyncClient, url: str, headers: dict):
     response = await client.get(url, headers=headers)
     response.raise_for_status()  # Генерирует исключение, если статус ошибки
@@ -99,11 +103,14 @@ async def make_request(client: httpx.AsyncClient, url: str, headers: dict):
 
 @router.post("/upload/")
 async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_session), user: User = Depends(current_user)):
+    logger.info(f"Начало загрузки файлов для владельца ID={owner_id}")
+    
     # Проверяем наличие владельца
     owner_result = await session.execute(owner_db.select().where(owner_db.c.id == owner_id))
     owner = owner_result.fetchone()
 
     if not owner:
+        logger.warning(f"Владелец ID={owner_id} не найден")
         raise HTTPException(status_code=404, detail="Владелец не найден")
 
     # Получаем список активных параметров (param) для владельца
@@ -114,9 +121,11 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
     )
     result = await session.execute(query)
     params = result.fetchall()
-    
     if not params:
+        logger.warning(f"Нет активных отчетов для владельца ID={owner_id}")
         raise HTTPException(status_code=404, detail="Нет активных отчетов для владельца")
+    
+    logger.info(f"📋 Найдено {len(params)} активных отчетов для владельца {owner.name}")
     
     # Скачиваем файлы для каждого param
     saved_files = []
@@ -125,8 +134,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
             url = f"{GOLD_SERV_API_URL}/?{param}={owner.name}"
             headers = {'Authorization': f'Bearer {BEARER_TOKEN_GOLD_SERV}'}
             try:
-                # response = await client.get(url, headers=headers)
-                # response.raise_for_status()
+                logger.info(f"📡 Запрос к {url} для владельца {owner.name}")
                 response = await make_request(client, url, headers)
 
                 owner_dir = UPLOAD_DIR / owner.name
@@ -140,7 +148,7 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
                 with open(file_path, "wb") as f:
                     f.write(response.content)
 
-                print(f"Файл сохранен как {file_path}")
+                logger.info(f"✅ Файл сохранен: {file_path}")
                 saved_files.append(file_path)
 
                 # Добавляем информацию о файле в БД
@@ -151,15 +159,46 @@ async def upload_files(owner_id: int, session: AsyncSession = Depends(get_async_
                 )
                 await session.execute(query)
             except httpx.HTTPStatusError as exc:
-                print(f"Ошибка при запросе {url}: {exc.response.status_code}, {exc.response.text}")
+                # Проверяем на ошибки сервера (502, 503, 504, 500)
+                if exc.response.status_code >= 500:
+                    error_detail = f"Внешний сервис недоступен. Обратитесь к администратору|||EXTERNAL_SERVER_ERROR (код {exc.response.status_code})"
+                    logger.error(f"Ошибка сервера {exc.response.status_code} при запросе {url}")
+                    raise HTTPException(status_code=503, detail=error_detail)
+                logger.warning(f"Ошибка при запросе {url}: {exc.response.status_code}")
+            except (httpx.ReadTimeout, httpx.ConnectTimeout) as exc:
+                # Обработка таймаутов
+                error_detail = f"Истёк тайм-аут соединения. Обратитесь к администратору|||TIMEOUT_ERROR (ожидание {timeout.timeout}сек)"
+                logger.error(f"Таймаут при запросе {url}: {str(exc)}")
+                raise HTTPException(status_code=503, detail=error_detail)
+            except RetryError as exc:
+                # Обработка ошибки tenacity после исчерпания всех попыток переподключения
+                error_detail = "Не удалось подключиться после нескольких попыток. Обратитесь к администратору.|||RETRY_ERROR (исчерпаны все попытки переподключения)"
+                logger.error(f"RetryError при запросе {url}: {str(exc)}")
+                raise HTTPException(status_code=503, detail=error_detail)
             except httpx.RequestError as exc:
-                print(f"Ошибка сети при запросе {url}: {str(exc)}")
-                print(f"Дополнительные детали: {exc.request.url}, {exc.request.headers}")
-    await session.commit()
+                # Обработка ошибок сети
+                error_detail = "Ошибка соединения с сервером. Обратитесь к администратору|||NETWORK_ERROR (проверьте соединение)"
+                logger.error(f"Ошибка сети при запросе {url}: {str(exc)}")
+                raise HTTPException(status_code=503, detail=error_detail)
+            except Exception as exc:
+                # Общая обработка других исключений
+                error_detail = f"Произошла ошибка при обработке запроса. Обратитесь к администратору|||INTERNAL_ERROR (дополнительные детали в логах)"
+                logger.error(f"Неожиданная ошибка при обработке {url}: {str(exc)}", exc_info=True)
+                raise HTTPException(status_code=500, detail=error_detail)
+    
+    # Сохраняем изменения в БД только если всё прошло успешно
+    try:
+        await session.commit()
+        logger.info(f"✅ Изменения сохранены в БД для владельца {owner.name}")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении в БД: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Ошибка при сохранении данных в базу данных")
 
     if not saved_files:
+        logger.warning(f"Не был загружен ни один файл для владельца {owner.name}")
         raise HTTPException(status_code=404, detail="Файлы не были загружены")
 
+    logger.info(f"✅ Успешно загружено {len(saved_files)} файлов для владельца {owner.name}")
     return {"message": "Файлы успешно добавлены", "files": [str(file) for file in saved_files]}
 
 
@@ -183,7 +222,7 @@ async def delete_old_files():
         old_files = result.all()
 
         if not old_files:
-            print("нет старых файлов")
+            logger.info("Нет старых файлов для удаления")
             return  # Если старых файлов нет, ничего не делаем
 
         # Удаляем файлы из системы
@@ -191,7 +230,7 @@ async def delete_old_files():
             file_path = Path(file_path)
             if file_path.exists():
                 os.remove(file_path)
-        print("файлы были удалены")
+        logger.info(f"Удалено {len(old_files)} старых файлов")
         # Удаляем файлы из базы за 1 SQL-запрос (оптимизировано)
         await session.execute(files.delete().where(files.c.id.in_([file_id for file_id, _ in old_files])))
         await session.commit()

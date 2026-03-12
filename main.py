@@ -16,6 +16,10 @@ from auth.schemas import UserCreate, UserRead, UserUpdate
 
 from schedule import lifespan
 
+# Инициализируем логирование
+from utils.logger_config import setup_logger
+logger = setup_logger("main")
+
 app = FastAPI(lifespan=lifespan)
 
 

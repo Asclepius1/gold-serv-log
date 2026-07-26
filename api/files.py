@@ -97,7 +97,7 @@ async def add_report(
 
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))  # 2 попытки с задержкой 2 сек (вместо 3х с 4сек)
 async def make_request(client: httpx.AsyncClient, url: str, headers: dict):
-    response = await client.get(url, headers=headers)
+    response = await client.get(url, headers=headers, timeout=80)
     response.raise_for_status()  # Генерирует исключение, если статус ошибки
     return response
 

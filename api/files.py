@@ -288,7 +288,8 @@ def get_button_status(button_id: str):
         # "attempts_left": max(0, 2 - press_count),
         "attempts_left": max(0, max_attempts - press_count),
         "last_press_time": last_press_time,
-        "max_attempts": max_attempts
+        "max_attempts": max_attempts,
+        "default_time_limit": 14400 if button_id != "5" else 3600  # 4 часа для всех кнопок, кроме кнопки с ID=5 (1 час)
     }
 
 @router.get("/button_status/{button_id}")
@@ -304,7 +305,11 @@ def press_button(button_id: str, user: User = Depends(current_user)):
     if status["attempts_left"] == 0:
         raise HTTPException(status_code=429, detail="Лимит нажатий исчерпан")
 
-    if status["last_press_time"] > 0 and (current_time - status["last_press_time"]) < 14400:
+    #Доработка для JML нужно было чтобы для этой кнопки ограничение было 1 час
+    if button_id == "5" and status["last_press_time"] > 0 and (current_time - status["last_press_time"]) < 3600:
+        raise HTTPException(status_code=429, detail="Можно нажать через 1 час")
+
+    elif status["last_press_time"] > 0 and (current_time - status["last_press_time"]) < 14400:
         raise HTTPException(status_code=429, detail="Можно нажать через 4 часа")
 
     # Обновляем Redis

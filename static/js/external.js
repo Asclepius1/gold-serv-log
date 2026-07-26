@@ -24,7 +24,7 @@ async function ButtonStatus(buttonId) {
   } else if (data.last_press_time > 0) {
     let timeRemaining = Math.max(
       0,
-      14400 - (Date.now() / 1000 - data.last_press_time),
+      data.default_time_limit - (Date.now() / 1000 - data.last_press_time),
     );
     startCountdown(buttonId, timeRemaining);
   } else {
